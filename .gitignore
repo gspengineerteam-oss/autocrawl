@@ -1,95 +1,217 @@
-# Secrets
+# =============================================================================
+# .gitignore — tuned for local → server migration (GitHub push or zip transfer)
+# =============================================================================
+# Anything regenerable on the server (deps, builds, caches) or local-only
+# (secrets, SSH keys, editor state, OS junk, scratch work) is excluded.
+# Heavy runtime artifacts (PDFs, recordings, vector DB, model checkpoints)
+# are also excluded — transfer those separately via rsync/scp if needed.
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Secrets — NEVER commit. Use .env.example as the template on the server.
+# -----------------------------------------------------------------------------
 .env
 .env.local
 .env.*.local
-.scratch/
-.venv-agentic
-*report
-test_agent
-0
-skills-lock.json
+.env.production
+.env.development
+!.env.example
+!.env.gluetun.example
 
-# SSH keys + connection helpers — local-only, never commit.
-# Contains the OpenSSH-converted private key for the inference-kaytus
-# host (10.83.81.246) plus a host-alias config snippet. Generated from
-# the MobaXterm .ppk via `puttygen` — see .ssh-local/README.md.
+# -----------------------------------------------------------------------------
+# SSH keys & local connection helpers (per .ssh-local/README.md, local-only)
+# Contains the OpenSSH-converted private key for the inference-kaytus host
+# (10.83.81.246) plus a host-alias config snippet. Generated from the
+# MobaXterm .ppk via `puttygen` — see .ssh-local/README.md.
+# -----------------------------------------------------------------------------
 .ssh-local/
 *.ppk
+*.pem
 id_gsp
 id_gsp.pub
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+known_hosts
 
-# Python
+# -----------------------------------------------------------------------------
+# Python — bytecode, build artifacts, caches
+# -----------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
-var/
 wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
+
+# Test / type / lint caches
 .pytest_cache/
 .coverage
 .coverage.*
 htmlcov/
 .tox/
+.nox/
 .mypy_cache/
 .ruff_cache/
+.pyre/
+.pytype/
+coverage.xml
+*.cover
 
-# venvs
+# Virtualenvs (regenerated on server via `uv sync` / `pip install`)
 .venv/
 venv/
 env/
+.venv-agentic/
+backend/.venv*/
+**/.venv*/
 
-# IDE
+# -----------------------------------------------------------------------------
+# Node / Frontend — deps (517MB), build output, framework caches.
+# All regenerated on server via `npm ci && npm run build`.
+# -----------------------------------------------------------------------------
+node_modules/
+**/node_modules/
+frontend/dist/
+**/dist/
+.next/
+.nuxt/
+.vite/
+.turbo/
+.svelte-kit/
+.cache/
+.parcel-cache/
+.npm/
+.yarn/
+.yarn-integrity
+.pnpm-store/
+.eslintcache
+*.tsbuildinfo
+
+# -----------------------------------------------------------------------------
+# IDE / editor state
+# -----------------------------------------------------------------------------
 .vscode/
+*.vscode
 .idea/
 *.swp
 *.swo
+*.swn
+*~
+.claude/
+*.claude
+.history/
+.fleet/
+.zed/
 
-# OS
+# -----------------------------------------------------------------------------
+# OS junk
+# -----------------------------------------------------------------------------
 .DS_Store
 Thumbs.db
 desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
 
-# Project data — generated at runtime
-data/
-logs/
-nllb_models/
-!data/.gitkeep
-!logs/.gitkeep
-
-# Browser caches
+# -----------------------------------------------------------------------------
+# Browser / scraper caches (regenerated on first run)
+# -----------------------------------------------------------------------------
 .playwright-cache/
 ms-playwright/
-migrations
-ops/
-tests
-scripts
-# Docker
-.docker/
+.puppeteer/
+.chromium/
 
-# Local overrides
-docker-compose.override.yml
-
-
-*node_modules/
-dist/
-.claude
-.vscode
-*.vscode
-*.claude
+# -----------------------------------------------------------------------------
+# TLS certs — local development only; the server has its own
+# -----------------------------------------------------------------------------
 frontend/certs/
-database
+*.key
+*.crt
+*.csr
 
+# -----------------------------------------------------------------------------
+# Docker local-only overrides (server uses docker-compose.yml + its own env)
+# -----------------------------------------------------------------------------
+.docker/
+docker-compose.override.yml
+docker-compose.local.yml
+
+# -----------------------------------------------------------------------------
+# Logs — runtime, not needed on server (server generates its own)
+# -----------------------------------------------------------------------------
+logs/
+!logs/.gitkeep
+*.log
+*.log.*
+ollama_watchdog.log
+snowglobe_publish_catchup.log
+snowglobe_restore_wave.log
+
+# -----------------------------------------------------------------------------
+# Model weights — too large for git/zip; pull on server via downloader
+# -----------------------------------------------------------------------------
+nllb_models/
+models/
+*.bin
+*.safetensors
+*.gguf
+*.onnx
+*.pt
+*.pth
+*.ckpt
+
+# -----------------------------------------------------------------------------
+# Project runtime data — multi-GB; regenerated by crawlers/agents on server.
+# Whitelist below any small bootstrap artifacts the server actually needs.
+# -----------------------------------------------------------------------------
+data/
+!data/.gitkeep
+# Uncomment if the server needs these to bootstrap instead of regenerating:
+# !data/manual_migration.sql
+# !data/vendors_backup_pre_stage4.sql
+# !data/agentic_knowledge.json
+
+# -----------------------------------------------------------------------------
+# Scraped reference HTML (database/) — local research artifact, not deployable
+# -----------------------------------------------------------------------------
+database/
+
+# -----------------------------------------------------------------------------
+# Dev reports & scratch — useful locally, not needed on server
+# -----------------------------------------------------------------------------
+.scratch/
+test_agent/
+report/
+OVERNIGHT_RUN_REPORT_*.md
+0
+skills-lock.json
+
+# -----------------------------------------------------------------------------
+# Heavy media tracked in source (>10MB) — transfer separately if required
+# frontend/public/ui-readme.mp4 is a 21MB tutorial video
+# -----------------------------------------------------------------------------
+frontend/public/ui-readme.mp4
+
+# -----------------------------------------------------------------------------
+# Backup / temp / patch files
+# -----------------------------------------------------------------------------
+*.bak
+*.backup
+*.orig
+*.rej
+*.tmp
+*.temp
+*.old
+tmp/
+temp/

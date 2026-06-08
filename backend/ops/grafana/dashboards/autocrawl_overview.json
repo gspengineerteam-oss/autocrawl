@@ -1,0 +1,94 @@
+{
+  "title": "AutoCrawl Overview",
+  "uid": "autocrawl-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Vendors enriched (cumulative)",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "crawl_vendors_enriched_total", "refId": "A" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "gauge",
+      "title": "Phase 2 progress (target 100)",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1.5,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "green", "value": 1.0 }
+            ]
+          }
+        }
+      },
+      "targets": [{ "expr": "crawl_phase_2_progress_ratio", "refId": "A" }]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Vendors enriched / 5m",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 6 },
+      "targets": [
+        { "expr": "rate(crawl_vendors_enriched_total[5m])*60", "refId": "A", "legendFormat": "/min" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Active workers per stage",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 10 },
+      "targets": [
+        { "expr": "crawl_active_workers", "refId": "A", "legendFormat": "{{stage}}" }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Errors / 5m by stage",
+      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 6 },
+      "targets": [
+        { "expr": "sum(rate(crawl_errors_total[5m])) by (stage)", "refId": "A", "legendFormat": "{{stage}}" }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "OpenAI tokens / 5m",
+      "gridPos": { "x": 12, "y": 10, "w": 12, "h": 6 },
+      "targets": [
+        { "expr": "sum(rate(crawl_openai_tokens_total[5m])*300) by (model, kind)", "refId": "A", "legendFormat": "{{model}} {{kind}}" }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Firecrawl credits / hour",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 6 },
+      "targets": [
+        { "expr": "sum(rate(crawl_firecrawl_credits_used_total[1h])*3600) by (operation)", "refId": "A", "legendFormat": "{{operation}}" }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Request duration (p95) by tool",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 6 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(crawl_request_duration_seconds_bucket[5m])) by (le, tool))", "refId": "A", "legendFormat": "{{tool}}" }
+      ]
+    }
+  ]
+}

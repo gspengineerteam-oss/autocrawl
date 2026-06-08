@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenVPN client to GSP corporate network
+Documentation=https://openvpn.net/community-resources/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/usr/sbin/openvpn --config /etc/openvpn/client/vpn-gsp.conf
+# Pin routes to tun0 after VPN comes up.
+ExecStartPost=/usr/local/sbin/openvpn-gsp-route-fix.sh
+Restart=on-failure
+RestartSec=10
+LimitNPROC=10
+DeviceAllow=/dev/null rw
+DeviceAllow=/dev/net/tun rw
+
+[Install]
+WantedBy=multi-user.target
