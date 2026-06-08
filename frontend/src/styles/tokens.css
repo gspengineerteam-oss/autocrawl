@@ -1,0 +1,201 @@
+/* Autocrawl Design Tokens — Refined Cinematic register
+ *
+ * Two substrate inversions of one register:
+ *   PAPER (light) — Soft Structuralism, Stripe-luxe daylight
+ *   INK   (dark)  — Ethereal Glass, OLED operator-night
+ *
+ * Apple/Stripe references:
+ *   - Generous whitespace, large-scale typography, layered z-depth
+ *   - Surgical mesh-gradient accents (hero corner only, never decorative)
+ *   - Double-bezel surfaces (outer shell + inner core)
+ *   - Cubic-bezier(0.32, 0.72, 0, 1) motion language
+ */
+
+/* --- PAPER (Soft Structuralism, default) --- */
+:root,
+:root[data-theme='paper'] {
+  /* Substrate — cool slate paper, never #fff */
+  --bg: 250 250 251;
+  --surface: 255 255 255;
+  --surface-2: 244 244 245;
+  --surface-3: 228 228 231;
+  --shell:   245 245 247;
+
+  /* Carbon ink */
+  --ink: 9 9 11;
+  --ink-2: 63 63 70;
+  --ink-mute: 113 113 122;
+
+  /* Hairline rules */
+  --rule: 9 9 11;
+  --rule-alpha: 0.08;
+  --rule-strong-alpha: 0.16;
+
+  /* Single locked accent — antique gold (emas) — Stripe-luxe in gold key */
+  --accent: 184 137 58;        /* #B8893A antique gold */
+  --accent-hot: 154 111 38;    /* #9A6F26 pressed */
+  --accent-soft: 184 137 58;
+  --accent-soft-alpha: 0.12;
+  --accent-glow: 212 162 80;   /* #D4A250 brighter gold for ambient halos */
+
+  --coral: 242 95 76;
+  --coral-hot: 220 70 52;
+  --cyan: 56 189 248;
+
+  /* Legacy aliases — resolve to the single gold accent */
+  --amber: 184 137 58;
+  --amber-hot: 154 111 38;
+  --amber-soft: 184 137 58;
+  --amber-soft-alpha: 0.12;
+  --phosphor: 56 189 248;
+
+  --ok: 22 163 74;
+  --warn: 217 119 6;
+  --crit: 220 38 38;
+  --info: 56 189 248;
+
+  /* Motion — Apple cinematic curve */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-90: 120ms;
+  --dur-160: 200ms;
+  --dur-240: 320ms;
+  --dur-360: 700ms;
+  --dur-cinematic: 1100ms;
+
+  /* Type scale */
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 28px;
+  --text-3xl: 38px;
+  --text-4xl: 52px;
+  --text-5xl: 72px;
+  --text-6xl: 96px;
+  --text-cinema: clamp(4.5rem, 12vw, 11rem);
+
+  --tracking-stencil: 0.18em;
+  --tracking-tight: -0.014em;
+  --tracking-display: -0.04em;
+  --tracking-cinema: -0.055em;
+
+  /* Radii — Apple squircle scale */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius:    14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+  --radius-pill: 9999px;
+
+  --bezel-pad: 6px;
+  --bezel-outer: 28px;
+  --bezel-inner: 22px;
+  --bezel-outer-lg: 36px;
+  --bezel-inner-lg: 30px;
+
+  /* Soft diffused shadows — Apple ambient elevation */
+  --shadow-card:
+    0 1px 1px rgb(9 9 11 / 0.025),
+    0 6px 16px rgb(9 9 11 / 0.06),
+    0 24px 48px -16px rgb(9 9 11 / 0.08);
+  --shadow-card-hover:
+    0 1px 1px rgb(9 9 11 / 0.04),
+    0 12px 32px rgb(9 9 11 / 0.10),
+    0 40px 80px -24px rgb(9 9 11 / 0.16);
+  --shadow-hero:
+    0 1px 1px rgb(9 9 11 / 0.04),
+    0 24px 48px -12px rgb(9 9 11 / 0.10),
+    0 60px 120px -32px rgb(184 137 58 / 0.22);
+  --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 0.6);
+  --shadow-amber:
+    0 0 0 1px rgb(184 137 58 / 0.55),
+    0 8px 32px -8px rgb(184 137 58 / 0.36);
+
+  /* Aurora mesh — three gold-keyed orbs (warm ambient halo, hero only) */
+  --aurora-1: radial-gradient(70% 70% at 8% 4%, rgb(212 162 80 / 0.32), transparent 62%);
+  --aurora-2: radial-gradient(55% 55% at 100% 28%, rgb(184 137 58 / 0.22), transparent 66%);
+  --aurora-3: radial-gradient(80% 80% at 60% 110%, rgb(154 111 38 / 0.18), transparent 70%);
+
+  --font-display: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans:    'Geist Variable', 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:    'Geist Variable', 'Geist', 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Glass — fixed/sticky elements only */
+  --glass-blur: 24px;
+  --glass-saturate: 180%;
+  --glass-bg: 255 255 255;
+  --glass-bg-alpha: 0.72;
+  --glass-edge-alpha: 0.6;
+
+  color-scheme: light;
+}
+
+/* --- INK (Ethereal Glass, operator-night) --- */
+:root[data-theme='ink'],
+:root[data-theme='ink-dark'] {
+  --bg: 5 5 7;
+  --surface: 14 14 16;
+  --surface-2: 22 22 26;
+  --surface-3: 35 35 42;
+  --shell:   10 10 13;
+
+  --ink: 244 244 245;
+  --ink-2: 161 161 170;
+  --ink-mute: 82 82 91;
+
+  --rule: 244 244 245;
+  --rule-alpha: 0.08;
+  --rule-strong-alpha: 0.18;
+
+  --accent: 224 168 72;        /* #E0A848 lifted gold for OLED */
+  --accent-hot: 255 198 99;    /* #FFC663 bright gold press */
+  --accent-soft: 224 168 72;
+  --accent-soft-alpha: 0.18;
+  --accent-glow: 255 198 99;
+
+  --coral: 251 113 95;
+  --coral-hot: 242 95 76;
+  --cyan: 56 189 248;
+
+  --amber: 224 168 72;
+  --amber-hot: 255 198 99;
+  --amber-soft: 224 168 72;
+  --amber-soft-alpha: 0.18;
+  --phosphor: 56 189 248;
+
+  --ok: 34 197 94;
+  --warn: 245 158 11;
+  --crit: 248 113 113;
+  --info: 56 189 248;
+
+  --shadow-card:
+    0 1px 0 rgb(255 255 255 / 0.04),
+    0 8px 24px rgb(0 0 0 / 0.40),
+    0 32px 80px -32px rgb(224 168 72 / 0.16);
+  --shadow-card-hover:
+    0 1px 0 rgb(255 255 255 / 0.06),
+    0 16px 40px rgb(0 0 0 / 0.55),
+    0 48px 120px -32px rgb(224 168 72 / 0.30);
+  --shadow-hero:
+    0 1px 0 rgb(255 255 255 / 0.06),
+    0 32px 80px -16px rgb(0 0 0 / 0.65),
+    0 80px 160px -40px rgb(224 168 72 / 0.42);
+  --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  --shadow-amber:
+    0 0 0 1px rgb(224 168 72 / 0.6),
+    0 8px 32px -8px rgb(224 168 72 / 0.55);
+
+  --aurora-1: radial-gradient(70% 70% at 8% 4%, rgb(255 198 99 / 0.38), transparent 62%);
+  --aurora-2: radial-gradient(55% 55% at 100% 28%, rgb(224 168 72 / 0.28), transparent 66%);
+  --aurora-3: radial-gradient(80% 80% at 60% 110%, rgb(154 111 38 / 0.20), transparent 70%);
+
+  --glass-bg: 14 14 16;
+  --glass-bg-alpha: 0.65;
+  --glass-edge-alpha: 0.10;
+
+  color-scheme: dark;
+}

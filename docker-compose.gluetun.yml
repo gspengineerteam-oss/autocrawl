@@ -1,0 +1,100 @@
+# Optional VPN overlay. Brings up the open-source `qdm12/gluetun` sidecar
+# and forces every outbound HTTP from the crawler + agentic-crawler through
+# its built-in HTTP proxy on :8888.
+#
+# Usage:
+#   1. cp .env.gluetun.example .env.gluetun  # fill in your provider creds
+#   2. set -a; source .env.gluetun; set +a
+#   3. docker compose -f docker-compose.yml -f docker-compose.gluetun.yml \
+#        --profile agentic up -d
+#
+# Verify the VPN is alive AND we're using it:
+#   docker compose exec gluetun wget -qO- ifconfig.me   # → VPN exit IP
+#   docker compose exec agentic-crawler curl -sS -x http://gluetun:8888 \
+#     https://ifconfig.me                                # → same VPN exit
+#
+# Kill switch test:
+#   docker compose exec gluetun wg-quick down wg0
+#   docker compose exec agentic-crawler curl -m 5 https://www.bing.com
+#   # → expect timeout; ProxyDeadError trips after PROXY_MAX_CONSECUTIVE_FAILURES
+#
+# Default OFF in the base compose; opt-in via `-f docker-compose.gluetun.yml`.
+
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: autocrawl-gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks: [crawl_net]
+    ports:
+      # Built-in HTTP proxy. Crawler + agentic-crawler pick it up via
+      # PROXY_URL=http://gluetun:8888.
+      - "127.0.0.1:8888:8888"
+      # Built-in SOCKS proxy fallback (httpx-socks supports it).
+      - "127.0.0.1:1080:1080"
+    environment:
+      VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-mullvad}
+      VPN_TYPE: ${VPN_TYPE:-wireguard}
+      WIREGUARD_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY:-}
+      WIREGUARD_ADDRESSES: ${WIREGUARD_ADDRESSES:-}
+      OPENVPN_USER: ${OPENVPN_USER:-}
+      OPENVPN_PASSWORD: ${OPENVPN_PASSWORD:-}
+      # Country rotation: list = round-robin on reconnect. Pin to a single
+      # country for stable SERP rankings; multi for organic IP variation.
+      SERVER_COUNTRIES: ${VPN_COUNTRIES:-Japan,Germany,Netherlands}
+      # Built-in HTTP proxy on :8888. Auth optional.
+      HTTPPROXY: "on"
+      HTTPPROXY_LOG: "off"
+      # Built-in SOCKS5 proxy on :1080.
+      SHADOWSOCKS: "off"
+      # Refresh server list every 24h so we pick up new POPs.
+      UPDATER_PERIOD: 24h
+      # Health probe gluetun uses to declare itself ready. Defaults are sane;
+      # override if your provider blocks ifconfig.me.
+      HEALTH_TARGET_ADDRESS: ${VPN_HEALTH_TARGET:-cloudflare.com:443}
+      DOT: "off"
+      DNS_KEEP_NAMESERVER: "off"
+    healthcheck:
+      test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Force the base crawler + agentic-crawler to actually use the proxy.
+  # We override the env block instead of swapping network mode, so
+  # internal services (redis, searxng, openserp, db) keep working over
+  # the docker network without going through the VPN tunnel.
+  crawler:
+    environment:
+      VPN_ENABLED: "true"
+      PROXY_URL: ${PROXY_URL:-http://gluetun:8888}
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+      flaresolverr:
+        condition: service_started
+      autocrawl-db:
+        condition: service_healthy
+      openserp:
+        condition: service_started
+
+  agentic-crawler:
+    environment:
+      VPN_ENABLED: "true"
+      PROXY_URL: ${PROXY_URL:-http://gluetun:8888}
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      autocrawl-db:
+        condition: service_healthy
+      crawler:
+        condition: service_started

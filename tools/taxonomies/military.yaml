@@ -1,0 +1,284 @@
+version: 2
+description: |
+  Military / defense scope taxonomy for Autocrawl agentic vendor classifier.
+  v2 (2026-05-25): word-boundary matching, global negative keywords, and
+  per-category negative_context to suppress civilian false positives.
+
+  Match logic:
+    - Each positive keyword matches via `\b<kw>\b` regex (word boundary).
+    - global negative_keywords abort the whole classification (vendor → not military).
+    - Per-category negative_context disables a category if present in the same
+      haystack as a positive hit (e.g. "drone" + "racing drone" → ignore c4isr).
+
+min_match_score: 0.10
+hard_reject_below_score: 0.05
+weak_signal_score: 0.40            # 2026-05-25 rescaled — score < this AND single category → require explicit military context. With max_practical_weight=4.0, 0.40 ≈ "less than 2 weighted categories"
+max_practical_weight: 4.0          # 2026-05-25 — cap denominator. Specialist vendor (1 weighted category) → 25%, 2 → 50%, 3 → 75%, 4+ → 100%. Comprehensive defense prime (SAAB-tier) caps at 100%.
+explicit_military_context:
+  - military
+  - defense
+  - defence
+  - armed forces
+  - police
+  - swat
+  - tactical
+  - combat
+  - warfare
+  - law enforcement
+  - special forces
+
+negative_keywords_global:
+  # Vendor scopes that should never qualify as military regardless of accidental
+  # keyword hits. Substring match (rakus) intentional — false positives here
+  # are cheaper than civilian vendor leaks into the military feed.
+  - cosmetic
+  - lipstick
+  - mascara
+  - skincare
+  - perfume
+  - fragrance
+  - fashion apparel
+  - food and beverage
+  - food & beverage
+  - restaurant
+  - hospitality industry
+  - real estate
+  - online dating
+  - gaming entertainment
+  - casino
+  - children toy
+  - kids toy
+  - pet food
+  - veterinary
+  - pet care
+
+categories:
+  weapons:
+    weight: 1.0
+    keywords:
+      - weapon
+      - firearm
+      - rifle
+      - pistol
+      - shotgun
+      - sniper
+      - assault rifle
+      - sub machine gun
+      - submachine gun
+      - smg
+      - lmg
+      - machine gun
+      - mortar
+      - artillery
+      - howitzer
+      - cannon
+      - grenade launcher
+      - small arms
+      - light arms
+
+  ammunition:
+    weight: 1.0
+    keywords:
+      - ammunition
+      - ammo
+      - cartridge
+      - bullet
+      - round
+      - propellant
+      - explosive
+      - munition
+      - warhead
+      - detonator
+      - fuze
+      - primer
+
+  missiles_rockets:
+    weight: 1.0
+    keywords:
+      - missile
+      - rocket
+      - guided munition
+      - atgm
+      - manpads
+      - icbm
+      - cruise missile
+      - ballistic missile
+      - mlrs
+      - anti tank
+      - anti-tank
+      - anti aircraft
+      - anti-aircraft
+
+  vehicles_armor:
+    weight: 1.0
+    keywords:
+      - tank
+      - main battle tank
+      - mbt
+      - apc
+      - armored personnel carrier
+      - ifv
+      - infantry fighting vehicle
+      - mrap
+      - armored vehicle
+      - armoured vehicle
+      - combat vehicle
+      - military vehicle
+      - tactical vehicle
+      - humvee
+      - light tactical vehicle
+      - reconnaissance vehicle
+    negative_context:
+      - water tank
+      - fuel tank
+      - storage tank
+      - septic tank
+      - aquarium tank
+      - civilian suv
+      - passenger car
+      - fleet rental
+      - motorhome
+      - recreational vehicle
+      - atv recreational
+      - thank you
+
+  protection_armor:
+    weight: 0.9
+    keywords:
+      - body armor
+      - body armour
+      - ballistic
+      - kevlar
+      - plate carrier
+      - bulletproof
+      - bullet proof
+      - bullet-proof
+      - helmet
+      - combat helmet
+      - tactical vest
+      - shield
+      - blast protection
+
+  c4isr_electronics:
+    weight: 1.0
+    keywords:
+      - radar
+      - sigint
+      - comint
+      - elint
+      - electronic warfare
+      - ew
+      - jamming
+      - jammer
+      - sonar
+      - thermal imaging
+      - night vision
+      - c4isr
+      - c2
+      - c4
+      - isr
+      - surveillance
+      - reconnaissance
+      - drone
+      - uav
+      - unmanned aerial
+      - ucav
+      - counter drone
+      - anti drone
+      - anti-drone
+    negative_context:
+      - consumer drone
+      - hobby drone
+      - racing drone
+      - photography drone
+      - smart home camera
+      - baby monitor
+      - wildlife photography
+      - drone delivery
+      - drone real estate
+      - drone wedding
+      - aerial photography service
+
+  naval:
+    weight: 1.0
+    keywords:
+      - naval
+      - warship
+      - frigate
+      - corvette
+      - destroyer
+      - submarine
+      - patrol boat
+      - torpedo
+      - mine warfare
+      - naval gun
+      - shipyard military
+      - amphibious
+
+  aerospace_military:
+    weight: 1.0
+    keywords:
+      - fighter jet
+      - military aircraft
+      - combat aircraft
+      - attack helicopter
+      - combat helicopter
+      - military helicopter
+      - mil aviation
+      - aerial refueling
+      - airborne radar
+      - mpa
+    negative_context:
+      - commercial airline
+      - passenger jet
+      - cargo airline
+      - charter flight
+      - airport services
+      - mro maintenance
+      - civil aviation
+      - airline catering
+      - flight school commercial
+      - private jet charter
+
+  cyber_defense:
+    weight: 0.7
+    keywords:
+      - cyber defense
+      - cyber defence
+      - offensive cyber
+      - military cyber
+      - signals intelligence
+      - infosec defense
+
+  cbrn:
+    weight: 0.9
+    keywords:
+      - cbrn
+      - chemical biological
+      - radiological nuclear
+      - gas mask
+      - decontamination
+      - hazmat military
+
+  training_services:
+    weight: 0.5
+    keywords:
+      - military training
+      - tactical training
+      - special forces training
+      - swat training
+      - law enforcement training
+      - sniper training
+
+  defense_industrial:
+    weight: 0.4
+    keywords:
+      - defense contractor
+      - defence contractor
+      - defense industry
+      - defence industry
+      - military industry
+      - defense manufacturer
+      - defence manufacturer
+      - defense systems
+      - defence systems

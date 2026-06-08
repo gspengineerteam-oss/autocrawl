@@ -1,0 +1,168 @@
+# =====================================================================
+# CCPIT (China Council for the Promotion of International Trade) seed pack
+# 中国国际贸易促进委员会 — sub-councils + provincial chambers
+# =====================================================================
+#
+# Why this exists:
+#   CCPIT operates 31 provincial sub-councils and ~20 sectoral
+#   sub-councils (分会) — each runs its own member directory + hosts
+#   sector expos. These directories are NOT well-indexed by Google or
+#   English-language SERPs but are reachable through Baidu / Sogou /
+#   公众号 articles. A meaningful fraction of Chinese
+#   security/defense/dual-use vendors only surface here.
+#
+# Discovery flow:
+#   - `expand_seeds()` reads these topics alongside seed_topics.yaml.
+#   - Each topic produces 8-15 query variations via the LLM.
+#   - Tier 7 (Sogou/Zhihu/Bilibili/Baidu Scholar) auto-fires because
+#     every topic includes Chinese characters AND the keyword "ccpit"
+#     in `_KEYWORD_REGIONS` triggers `cn` region detection.
+#   - Operator can also force coverage via `force_china_deep=True` on
+#     `search_all()` for any specific topic.
+#
+# Materialization:
+#   `python backend/tools/expand_ccipt_seeds.py` cross-multiplies the
+#   provinces × sectors templates below into ~250 explicit queries and
+#   prints them as YAML you can paste into agentic_seeds.yaml for
+#   deterministic seeding (vs LLM-driven discovery).
+
+topics:
+
+  # -------- Sectoral sub-councils (most signal-dense) ---------
+  - name: "ccpit_sectoral_security"
+    label: "CCPIT Sectoral — Public Security"
+    keywords:
+      - "中国贸促会公共安全分会 会员单位"
+      - "CCPIT public security sub-council members"
+      - "中国国际贸易促进委员会 公共安全 厂商"
+      - "公安部 装备 厂商 名录"
+    regions: ["China"]
+    weight: 1.0
+
+  - name: "ccpit_sectoral_electronics"
+    label: "CCPIT Sectoral — Electronics & Information"
+    keywords:
+      - "中国贸促会电子信息行业分会 会员"
+      - "CCPIT electronics sub-council manufacturers"
+      - "电子信息 装备 出口 厂商"
+    regions: ["China"]
+    weight: 0.9
+
+  - name: "ccpit_sectoral_machinery"
+    label: "CCPIT Sectoral — Machinery"
+    keywords:
+      - "中国贸促会机械行业分会 会员单位"
+      - "CCPIT machinery sub-council member directory"
+      - "机械工业 出口 制造商 名单"
+    regions: ["China"]
+    weight: 0.8
+
+  - name: "ccpit_sectoral_aerospace"
+    label: "CCPIT Sectoral — Aerospace & Aviation"
+    keywords:
+      - "中国贸促会航空航天分会 会员"
+      - "CCPIT aerospace sub-council members"
+      - "航空航天 民营 制造商 名录"
+    regions: ["China"]
+    weight: 0.85
+
+  # -------- Provincial chambers (cross with sectors via expander) -----
+  # Sample seed queries per province. The expander script multiplies
+  # these by all 31 provinces × ~8 sectors = 248 queries. We list a
+  # handful here so discovery has direct entry points even before the
+  # expander is run.
+  - name: "ccpit_provincial_marquee"
+    label: "CCPIT Provincial — marquee chambers"
+    keywords:
+      - "CCPIT 北京 会员单位 公共安全"
+      - "CCPIT 上海 会员名录 安防"
+      - "CCPIT 广东 制造商 出口"
+      - "CCPIT 江苏 防务 制造商"
+      - "CCPIT 浙江 安防 厂商"
+      - "CCPIT 山东 装备 出口"
+      - "CCPIT 四川 制造业 名录"
+      - "CCPIT 福建 电子 厂商"
+    regions: ["China"]
+    weight: 0.75
+
+  - name: "ccpit_event_calendar"
+    label: "CCPIT-affiliated events & expos"
+    keywords:
+      - "中国贸促会 主办 展会 2026 安防"
+      - "CCPIT supported exhibition 2026 security"
+      - "中国国际 公共安全 展览会 主办单位 贸促会"
+      - "公安部第一研究所 展览 2026"
+    regions: ["China"]
+    weight: 0.7
+
+  # -------- China Public Security Expo orbit -------------------------
+  # CPSE is the pre-eminent Chinese security expo (Shenzhen). Its
+  # exhibitor directory is *the* canonical Chinese security vendor
+  # list — but the public exhibitor page is JS-gated and Baidu under-
+  # indexes it. Explicit topic so discovery surfaces wrapper articles
+  # (sponsor lists, vendor reviews, Bilibili 厂家 channels).
+  - name: "cpse_orbit"
+    label: "China Public Security Expo (CPSE) ecosystem"
+    keywords:
+      - "CPSE 深圳 公共安全 参展商"
+      - "中国公共安全博览会 厂商 名录"
+      - "CPSE Shenzhen exhibitor list 2026"
+      - "公共安全博览会 视频 工厂"
+      - "深圳安博会 厂家 推荐"
+    regions: ["China"]
+    weight: 0.95
+
+  # -------- Hidden/specialty indexes ---------------------------------
+  - name: "wechat_security_vendor_channels"
+    label: "WeChat 公众号 — security vendor channels"
+    keywords:
+      - "公安装备 公众号 厂家 推荐"
+      - "安防 装备 公众号 评测"
+      - "警用装备 厂家 公众号"
+      - "公共安全装备 微信 推荐"
+    regions: ["China"]
+    weight: 0.7
+
+  - name: "bilibili_factory_tours"
+    label: "Bilibili — factory tour videos for security/defense vendors"
+    keywords:
+      - "公安装备 工厂 探访"
+      - "警用装备 厂家 实拍"
+      - "安防摄像头 工厂 探访"
+      - "防爆装备 厂家 视频"
+    regions: ["China"]
+    weight: 0.65
+
+  - name: "zhihu_procurement_threads"
+    label: "Zhihu — procurement / vendor recommendation threads"
+    keywords:
+      - "警用装备 哪家 强 知乎"
+      - "安防摄像头 厂家 推荐 知乎"
+      - "公安部 采购 装备 知乎"
+      - "防暴 装备 出口 厂商 知乎"
+    regions: ["China"]
+    weight: 0.7
+
+# Anchor entities — seeds the LLM can use as positive examples when
+# expanding queries. Including a mix of romanized + Hanzi names broadens
+# the variation pool the Variator (Phase 3) will eventually exploit.
+anchor_expos:
+  - "CPSE Shenzhen (China Public Security Expo)"
+  - "中国国际公共安全博览会"
+  - "中国国际警用装备博览会"
+  - "公安部第一研究所 展览"
+  - "中国(北京)国际警用装备及反恐技术装备博览会"
+  - "Police China"
+  - "World Police Expo China"
+  - "Zhuhai Airshow"
+  - "China International Aviation & Aerospace Exhibition"
+  - "中国国际军民两用装备博览会"
+
+anchor_organizations:
+  - "中国国际贸易促进委员会 (CCPIT)"
+  - "公安部第一研究所"
+  - "公安部第三研究所"
+  - "中国电子学会"
+  - "中国安全防范产品行业协会 (CSPIA)"
+  - "中国警用装备网"
+  - "中国安防协会"

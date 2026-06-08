@@ -1,0 +1,180 @@
+# Domains yang TIDAK boleh dikenali sebagai vendor.
+# Resolver akan skip semua domain di sini saat memilih URL vendor asli
+# dari halaman exhibitor.
+
+# Expo / event aggregators — sumber data exhibitor, bukan vendor
+expo_aggregators:
+  - 10times.com
+  - eventbrite.com
+  - eventbrite.co.uk
+  - tradefairdates.com
+  - conferenceindex.org
+  - allconferences.com
+  - n-events.com
+  - nevents.com
+  - expopromoter.com
+  - eventseye.com
+  - showsbee.com
+  - tsnn.com
+  - bizzabo.com
+  - cvent.com
+  - meetingplay.com
+  - eventcombo.com
+  - 10timesweb.com
+  - aventri.com
+  - expodatabase.com
+  - exhibitions.uk.com
+  - meetingsnet.com
+
+# Social media — vendor mungkin punya halaman, tapi bukan domain utama
+social_platforms:
+  - linkedin.com
+  - facebook.com
+  - twitter.com
+  - x.com
+  - youtube.com
+  - instagram.com
+  - tiktok.com
+  - vimeo.com
+  - pinterest.com
+  - reddit.com
+  - discord.com
+  - discord.gg
+  - slack.com
+  - whatsapp.com
+  - t.me
+  - telegram.org
+  - threads.net
+  - bsky.app
+  - mastodon.social
+
+# Generic utilities — harus diabaikan
+utilities:
+  - google.com
+  - mail.google.com
+  - drive.google.com
+  - docs.google.com
+  - forms.google.com
+  - youtu.be
+  - bit.ly
+  - tinyurl.com
+  - goo.gl
+  - lnkd.in
+  - mailto.com
+  - example.com
+  - localhost
+
+# Search engines & directories
+search_engines:
+  - google.com
+  - bing.com
+  - duckduckgo.com
+  - yandex.com
+  - baidu.com
+
+# News / blog platforms (bukan vendor identity)
+news_blogs:
+  - medium.com
+  - substack.com
+  - wordpress.com
+  - blogspot.com
+  - tumblr.com
+  - dev.to
+  - hashnode.com
+
+# CDN / hosting / infrastructure
+infra:
+  - cloudflare.com
+  - amazonaws.com
+  - googleusercontent.com
+  - akamaihd.net
+  - fastly.net
+  - vercel.app
+  - netlify.app
+  - github.io
+  - gitlab.io
+
+# Wikipedia & references
+references:
+  - wikipedia.org
+  - wikimedia.org
+  - britannica.com
+
+# Hotel chains and venue/sponsor sites that frequently appear as
+# event sponsors and slip through the resolver as "vendor".
+hotels_and_venues:
+  - melia.com
+  - paradisusbali.com
+  - azorishotels.com
+  - hyatt.com
+  - hilton.com
+  - marriott.com
+  - sheraton.com
+  - ihg.com
+  - accor.com
+  - radisson.com
+  - bestwestern.com
+  - hotels.com
+  - booking.com
+  - airbnb.com
+  - bestourmiec.com.my
+  - paradisus.com
+  - destination-asia.com
+
+# Event platform aggregators that publish event listings.
+# Different from expo aggregators above (these host the event itself).
+event_platforms:
+  - accelevents.com
+  - westconference.org
+  - vfairs.com
+  - swapcard.com
+  - whova.com
+  - hopin.com
+  - eventscase.com
+  - expodiamond.com
+  - heysummit.com
+  - airmeet.com
+
+# News, media, blogs, and editorial platforms.
+news_media:
+  - foreignpolicy.com
+  - trulista.com
+  - bloomberg.com
+  - reuters.com
+  - cnn.com
+  - bbc.com
+  - bbc.co.uk
+  - nytimes.com
+  - wsj.com
+  - washingtonpost.com
+  - forbes.com
+  - techcrunch.com
+  - wired.com
+  - axios.com
+  - politico.com
+  - defenseone.com
+  - defensenews.com
+  - breakingdefense.com
+  - janes.com
+
+# Academic / university / government domain TLDs handled separately
+# below in the validator. Specific institutions that leak often:
+academic_institutions:
+  - vanderbilt.edu
+  - virginia.edu
+  - duke.edu
+  - georgetowntechnatsec.com
+  - law.duke.edu
+  - mit.edu
+  - stanford.edu
+  - harvard.edu
+
+# Job boards and recruitment platforms.
+job_boards:
+  - indeed.com
+  - glassdoor.com
+  - ziprecruiter.com
+  - monster.com
+  - lever.co
+  - greenhouse.io
+  - workday.com

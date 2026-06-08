@@ -1,0 +1,121 @@
+# syntax=docker/dockerfile:1.7
+#
+# Dockerfile for the agentic_crawler sibling service.
+#
+# Layered on top of the main crawler image — does NOT re-install the heavy
+# stack (NLLB-deps, Playwright Chromium 170MB, ~60 GTK/X11 system libs, all
+# the langchain/scrapy/crawl4ai Python deps). Only adds Python 3.11
+# (browser-use's hard requirement) plus browser-use in a dedicated venv.
+#
+# Build time:
+#   First build:      ~5-8 min  (Py3.11 apt + full crawler deps in venv)
+#   Subsequent builds: ~30 sec  (cache mount restores wheels, only changed src copies)
+#
+# Prerequisite: main image must be built first. `docker compose build` builds
+# main+agentic in topological order automatically.
+
+FROM autocrawl/crawler:latest
+
+# Suppress interactive prompts (e.g. tzdata's "Geographic area" question that
+# add-apt-repository pulls in as a transitive dep). Without this, apt-get hangs
+# forever in the container build with no way to answer.
+ENV DEBIAN_FRONTEND=noninteractive \
+    TZ=UTC
+
+# Install Python 3.11 from the deadsnakes PPA + a virtual-display + VNC stack
+# so the operator can watch Browser-Use's Chromium live in their host browser
+# at http://localhost:7900/vnc.html. Without VNC, Chromium has no display to
+# draw on inside the container and runs truly headless.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        software-properties-common gnupg ca-certificates tzdata && \
+    add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 python3.11-venv python3.11-distutils \
+        xvfb x11vnc fluxbox \
+        novnc websockify \
+        # dbus-x11 needed by fluxbox session bus; x11-utils gives xsetroot to
+        # paint a non-black background so user knows VNC is alive even before
+        # Chromium launches; xterm shows a visible window as sanity check.
+        dbus-x11 x11-utils xterm \
+        # Phase 3: wmctrl + xdotool let `_assign_window_to_workspace` move
+        # Chromium windows onto fluxbox workspace 1 (listing) vs 2 (enrich)
+        # for visual segregation in noVNC. Best-effort — helper no-ops if
+        # the binary is missing.
+        wmctrl xdotool \
+        # unzip needed for the Buster CAPTCHA-solver extension archive below.
+        unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Buster — open-source CAPTCHA solver Chromium extension (MIT, dessant/buster).
+# Solves reCAPTCHA v2 by clicking the audio challenge button and transcribing
+# the spoken answer via Web Speech API or Wit.ai. Loaded into Browser-Use's
+# Chromium via --load-extension at agent runtime (see agentic_crawler/agent.py).
+# Pinned to v3.1.0 — known stable, audio fallback works without API key.
+RUN curl -fsSL -o /tmp/buster.zip \
+        "https://github.com/dessant/buster/releases/download/v3.1.0/buster_captcha_solver_for_humans-3.1.0-chrome.zip" && \
+    mkdir -p /opt/buster && \
+    cd /opt/buster && unzip -q /tmp/buster.zip && \
+    rm /tmp/buster.zip && \
+    ls -lah /opt/buster | head -20
+
+# Dedicated Py3.11 venv just for browser-use. Keeps the main image's Py3.10
+# environment 100% untouched — main `crawl` CLI still uses Py3.10, only
+# `agentic-crawl` runs on Py3.11.
+ENV AGENTIC_VENV=/opt/agentic-venv
+RUN python3.11 -m venv $AGENTIC_VENV && \
+    $AGENTIC_VENV/bin/pip install --upgrade pip
+
+# Install crawler package + browser-use in the Py3.11 venv. The main image
+# already has the source at /app, so this is editable-mode against the same
+# tree — no second copy of source needed.
+WORKDIR /app
+RUN --mount=type=cache,target=/root/.cache/pip \
+    $AGENTIC_VENV/bin/pip install -e ".[agentic]"
+
+# Reuse Playwright Chromium already installed at /ms-playwright in the main
+# image. Browser-Use spawns Playwright from the Py3.11 venv but the Chromium
+# binary itself is shared — saves another 170MB download + extract.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# Belt-and-suspenders: re-run install in case the Py3.11 playwright pkg
+# expects a fingerprint check. Cached at the existing path so it's a no-op
+# in the happy case.
+RUN $AGENTIC_VENV/bin/python -m playwright install chromium || true
+
+# Make agentic-crawl CLI from the venv default on PATH so the compose
+# `command: ["agentic-crawl", "schedule"]` resolves correctly.
+ENV PATH=$AGENTIC_VENV/bin:$PATH
+
+# Overwrite /app/src with the latest source. The base image (autocrawl/
+# crawler:latest) already carries a copy of /app/src from its own build, but
+# that copy is stale whenever the main image was last built before the
+# current commit. Pip's editable .pth still points at /app/src, so this
+# replacement is picked up by both the Py3.10 system interpreter and the
+# Py3.11 venv without any further reinstall.
+COPY src ./src
+COPY scripts ./scripts
+
+# Wire up the entrypoint that boots Xvfb + noVNC before the actual command
+# (noVNC is skipped automatically when AGENTIC_HEADLESS=true).
+COPY scripts/agentic-entrypoint.sh /usr/local/bin/agentic-entrypoint.sh
+RUN chmod +x /usr/local/bin/agentic-entrypoint.sh
+
+ENV DISPLAY_NUM=99 \
+    DISPLAY=:99 \
+    VNC_RESOLUTION=1280x800
+
+EXPOSE 7900
+
+# Heartbeat-based healthcheck. The scheduler writes /tmp/agentic_heartbeat
+# after each pass; if it's missing or older than 600 seconds (10 min) the
+# loop is presumed dead and the container is marked unhealthy. Critical:
+# pgrep was a false-positive in prod (scheduler died but background daemons
+# kept the match alive). Heartbeat file is liveness-of-the-loop, not
+# liveness-of-the-binary.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+    CMD python -c "import os,sys,time; p='/tmp/agentic_heartbeat'; sys.exit(1) if (not os.path.exists(p)) or (time.time()-os.path.getmtime(p)>600) else sys.exit(0)"
+
+ENTRYPOINT ["/usr/local/bin/agentic-entrypoint.sh"]
+
+# 24/7 scheduler. SIGTERM triggers graceful shutdown via the signal handler
+# in agentic_crawler.scheduler.run_forever().
+CMD ["agentic-crawl", "schedule"]

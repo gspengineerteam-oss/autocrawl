@@ -1,0 +1,255 @@
+# =====================================================================
+# AGENTIC SEEDS — 2026 EXPO DATA (Jan–Mar)
+# Source: ALL_DATA_2026_EXPO_BY_MONTH_xlsx (Jan, Feb, Mar sheets)
+# URLs: verified via web search
+# Relevansi: green=hijau/follow-up, yellow=kuning/relevan,
+#            red=merah/tidak-relevan, white=putih/belum-dibaca
+# =====================================================================
+
+seeds:
+
+  # ===========================================================================
+  # JANUARY 2026
+  # ===========================================================================
+
+  - name: "Intersec 2026"
+    url: "https://intersec.ae.messefrankfurt.com/dubai/en/exhibitor-search/exhibitor-search.html"
+    date: "12–14 Jan 2026"
+    location: "Dubai, UAE"
+    company_count: 66
+    relevansi: "kuning"
+    notes: "relevan"
+    tags: ["security", "fire-protection", "homeland", "surveillance", "uae", "middle-east"]
+
+  - name: "UMEX 2026"
+    url: "https://www.umexabudhabi.ae/en/exhibitor-list"
+    date: "20–22 Jan 2026"
+    location: "Abu Dhabi, UAE"
+    company_count: 0
+    relevansi: "hijau"
+    notes: "follow up"
+    tags: ["drones", "unmanned", "uae", "middle-east", "defense"]
+
+  - name: "Mobile Deployable Comms 2026"
+    url: "https://www.defenceiq.com/events/mobile-deployable-communications"
+    date: "26–27 Jan 2026"
+    location: "Prague, Czech Republic"
+    company_count: 8
+    relevansi: "merah"
+    notes: "tidak relevan"
+    tags: ["comms", "defense", "europe", "czech-republic"]
+
+  - name: "SHOT Show"
+    url: "https://shotshow.org/exhibitors/"
+    date: "20–23 Jan 2026"
+    location: "Las Vegas, USA"
+    company_count: 1
+    relevansi: "putih"
+    notes: "belum dibaca"
+    tags: ["law-enforcement", "firearms", "usa"]
+
+  - name: "DIMDEX 2026"
+    url: "https://dimdex.com/exhibit/"
+    date: "19–22 Jan 2026"
+    location: "Doha, Qatar"
+    company_count: 18
+    relevansi: ""
+    notes: ""
+    tags: ["naval", "defense", "maritime", "qatar", "middle-east"]
+
+  # ===========================================================================
+  # FEBRUARY 2026
+  # ===========================================================================
+
+  - name: "World Defense Show 2026"
+    url: "https://www.worlddefenseshow.com/en/exhibitors"
+    date: "8–12 Feb 2026"
+    location: "Riyadh, Saudi Arabia"
+    company_count: 33
+    relevansi: ""
+    notes: ""
+    tags: ["defense", "aerospace", "land", "naval", "space", "saudi-arabia", "middle-east"]
+
+  - name: "AFA Warfare Symposium 2026"
+    url: "https://www.afa.org/afa-warfare-symposium/exhibitor-information/"
+    date: "23–26 Feb 2026"
+    location: "Aurora, Colorado, USA"
+    company_count: 23
+    relevansi: ""
+    notes: ""
+    tags: ["defense", "air-force", "space-force", "usa"]
+
+  - name: "Generative AI Expo 2026"
+    url: "https://www.generativeaiexpo.com/exhibitors"
+    date: "10–12 Feb 2026"
+    location: "Fort Lauderdale, USA"
+    company_count: 24
+    relevansi: ""
+    notes: ""
+    tags: ["ai", "generative-ai", "technology", "usa"]
+
+  - name: "Cybersecurity & Cloud Expo Global"
+    url: "https://www.cybersecuritycloudexpo.com/global/exhibitors"
+    date: "4–5 Feb 2026"
+    location: "London, UK"
+    company_count: 42
+    relevansi: ""
+    notes: ""
+    tags: ["cybersecurity", "cloud", "uk", "europe"]
+
+  - name: "Après-Cyber Slopes Summit 2026"
+    url: "https://www.aprescyber.com/exhibitors"
+    date: "25–27 Feb 2026"
+    location: "Park City, Utah, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["cybersecurity", "usa"]
+
+  - name: "S4x26 ICS Security Conference"
+    url: "https://s4xevents.com/sponsors/"
+    date: "23–26 Feb 2026"
+    location: "Miami Beach, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["ics", "scada", "critical-infrastructure", "cybersecurity", "usa"]
+
+  - name: "NDSS Symposium 2026"
+    url: "https://www.ndss-symposium.org/ndss2026/sponsors/"
+    date: "23–27 Feb 2026"
+    location: "San Diego, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["cybersecurity", "academic", "network-security", "usa"]
+
+  # ===========================================================================
+  # MARCH 2026
+  # ===========================================================================
+
+  - name: "EW ANZ 2026"
+    url: "https://www.ewanz.com/exhibitors"
+    date: "11–13 Mar 2026"
+    location: "Canberra, Australia"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["electronic-warfare", "defense", "australia", "apac"]
+
+  - name: "ISS World Middle East & Africa"
+    url: "https://www.issworldtraining.com/iss_mea/"
+    date: "24–26 Mar 2026"
+    location: "Dubai, UAE"
+    company_count: 15
+    relevansi: ""
+    notes: ""
+    tags: ["law-enforcement", "intelligence", "surveillance", "homeland", "uae", "middle-east"]
+
+  - name: "Enterprise Connect"
+    url: "https://www.enterpriseconnect.com/exhibitors"
+    date: "10–12 Mar 2026"
+    location: "Las Vegas, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["communications", "enterprise", "technology", "usa"]
+
+  - name: "Optical Fiber Communications Conference OFC 2026"
+    url: "https://www.ofcconference.org/en-us/home/exhibit/"
+    date: "17–19 Mar 2026"
+    location: "Los Angeles, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["optical", "fiber", "communications", "technology", "usa"]
+
+  - name: "Texas Communications Expo"
+    url: "https://www.txcommunicationsexpo.com/exhibitors"
+    date: "31 Mar – 2 Apr 2026"
+    location: "Belton, Texas, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["communications", "technology", "usa"]
+
+  - name: "International Wireless Communications Expo IWCE"
+    url: "https://www.iwceexpo.com/iwce/exhibitors"
+    date: "16–19 Mar 2026"
+    location: "Las Vegas, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["wireless", "communications", "law-enforcement", "public-safety", "usa"]
+
+  - name: "SATShow Week"
+    url: "https://www.satshow.com/exhibitors"
+    date: "23–26 Mar 2026"
+    location: "Washington, D.C., USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["satellite", "space", "communications", "usa"]
+
+  - name: "EWA Conference 2026"
+    url: "https://www.ewausa.org/conference"
+    date: "24–26 Mar 2026"
+    location: "Robins AFB, Georgia, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["electronic-warfare", "defense", "air-force", "usa"]
+
+  - name: "ISC West 2026"
+    url: "https://www.discoverisc.com/west/en-us/exhibitors.html"
+    date: "23–27 Mar 2026"
+    location: "Las Vegas, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["security", "surveillance", "access-control", "cybersecurity", "usa"]
+
+  - name: "Dixie Crow Symposium 2026"
+    url: "https://www.dixiecrow.com/exhibitors"
+    date: "22–25 Mar 2026"
+    location: "Robins AFB, Georgia, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["electronic-warfare", "defense", "isr", "usa"]
+
+  - name: "Billington State & Local Cyber Summit 2026"
+    url: "https://www.billingtoncybersecurity.com/events/state-local-cyber-summit/exhibitors"
+    date: "9–11 Mar 2026"
+    location: "Washington, DC, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["cybersecurity", "government", "state-local", "usa"]
+
+  - name: "RSA Conference 2026"
+    url: "https://path.rsaconference.com/flow/rsac/us26/exhibitors/page/exhibitors"
+    date: "23–26 Mar 2026"
+    location: "San Francisco, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["cybersecurity", "usa"]
+
+  - name: "SANS 2026 Training Event"
+    url: "https://www.sans.org/cyber-security-training/events/"
+    date: "29 Mar – 3 Apr 2026"
+    location: "Orlando, USA"
+    company_count: 0
+    relevansi: ""
+    notes: ""
+    tags: ["cybersecurity", "training", "usa"]
+
+# =====================================================================
+# END — 24 events total (Jan: 5 | Feb: 7 | Mar: 12)
+# URL status:
+#   ✅ Verified direct exhibitor URLs: Intersec, UMEX, SHOT Show,
+#      World Defense Show, AFA Warfare Symposium, ISS World MEA,
+#      ISC West, RSA Conference, S4x26, DIMDEX, NDSS
+#   🔍 Best-known URL (may require navigation): all others
+# =====================================================================

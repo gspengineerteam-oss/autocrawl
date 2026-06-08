@@ -1,0 +1,936 @@
+/* Autocrawl — Refined Cinematic register (Apple + Stripe luxe).
+ *
+ * Geist Variable      — sans display + body + UI
+ * Geist      — data, numerics, metadata, every tabular column
+ *
+ * Surface vocabulary:
+ *   .bezel       — double-bezel outer shell (Apple-style nested architecture)
+ *   .bezel-core  — inner core that sits inside .bezel with concentric radius
+ *   .card        — single-layer floating card (squircle + diffused shadow)
+ *   .glass       — fixed/sticky glass (used on nav only; backdrop-filter is
+ *                  perf-restricted to non-scrolling surfaces)
+ */
+@import '@fontsource-variable/geist/index.css';
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    height: 100%;
+    background-color: rgb(var(--bg));
+    color: rgb(var(--ink));
+  }
+
+  body {
+    @apply antialiased;
+    height: 100%;
+    margin: 0;
+    color: rgb(var(--ink));
+    background-color: rgb(var(--bg));
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'ss01' 1, 'ss02' 1, 'cv11' 1;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.005em;
+    position: relative;
+  }
+
+  /* Ambient aurora — fixed, behind everything, gently drifts.
+   * Lives on body::before so it never intercepts scroll or pointer.
+   * Heavy blur radial only on fixed pseudo (per perf guardrails). */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: -10%;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--aurora-1), var(--aurora-2), var(--aurora-3);
+    background-repeat: no-repeat;
+    will-change: transform;
+    animation: aurora-drift 22s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  #app {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+
+  ::selection {
+    background-color: rgb(var(--accent) / 0.20);
+    color: rgb(var(--ink));
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--rule) / 0.16);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--rule) / 0.32); background-clip: padding-box; }
+
+  .num,
+  .tabular-nums,
+  table tbody td,
+  [data-numeric] {
+    font-family: 'Geist Variable', 'Geist', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'zero' 1, 'ss01' 1, 'ss02' 1, 'ss19' 1;
+    letter-spacing: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body::before { animation: none !important; }
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+}
+
+@layer components {
+  /* ============================================================== */
+  /* DOUBLE-BEZEL — Apple nested-enclosure architecture              */
+  /* Outer shell with subtle bg + 1px hairline + concentric radius;  */
+  /* inner core has its own surface + inner-highlight + smaller r.   */
+  /* ============================================================== */
+  .bezel {
+    position: relative;
+    padding: 6px;
+    background: rgb(var(--shell) / 0.6);
+    border: 1px solid rgb(var(--rule) / var(--rule-alpha));
+    border-radius: 28px;
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.6) inset,
+      var(--shadow-card);
+    transition:
+      box-shadow var(--dur-360) var(--ease-out),
+      transform var(--dur-360) var(--ease-out);
+    isolation: isolate;
+  }
+  :root[data-theme='ink'] .bezel,
+  :root[data-theme='ink-dark'] .bezel {
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.06) inset,
+      var(--shadow-card);
+  }
+  .bezel-core {
+    background: rgb(var(--surface));
+    border: 1px solid rgb(var(--rule) / var(--rule-alpha));
+    border-radius: 22px;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5);
+    overflow: hidden;
+  }
+  :root[data-theme='ink'] .bezel-core,
+  :root[data-theme='ink-dark'] .bezel-core {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  }
+
+  .bezel-lg {
+    border-radius: 36px;
+    padding: 8px;
+  }
+  .bezel-lg > .bezel-core { border-radius: 30px; }
+
+  .bezel-interactive { cursor: pointer; }
+  .bezel-interactive:hover {
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.6) inset,
+      var(--shadow-card-hover);
+    transform: translateY(-2px);
+  }
+  :root[data-theme='ink'] .bezel-interactive:hover,
+  :root[data-theme='ink-dark'] .bezel-interactive:hover {
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.08) inset,
+      var(--shadow-card-hover);
+  }
+
+  /* ============================================================== */
+  /* CARDS — single-layer floating squircle with diffused shadow.    */
+  /* Legacy .glass / .glass-strong aliased to .card; backdrop-filter */
+  /* is forbidden on scroll content (perf), only on fixed nav.       */
+  /* ============================================================== */
+  .card,
+  .glass,
+  .glass-strong {
+    position: relative;
+    background: rgb(var(--surface));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid rgb(var(--rule) / var(--rule-alpha));
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
+    transition:
+      box-shadow var(--dur-360) var(--ease-out),
+      border-color var(--dur-360) var(--ease-out),
+      transform var(--dur-360) var(--ease-out);
+    isolation: isolate;
+  }
+  .card:hover,
+  .glass:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgb(var(--rule) / var(--rule-strong-alpha));
+  }
+  .card-glow {
+    box-shadow: var(--shadow-amber), var(--shadow-card);
+    border-color: transparent;
+  }
+  .card-2 {
+    background: rgb(var(--surface-2));
+    border: 1px solid rgb(var(--rule) / var(--rule-alpha));
+    border-radius: 16px;
+    box-shadow: none;
+  }
+  .card-head {
+    @apply flex items-center justify-between px-5 py-4;
+    border-bottom: 1px solid rgb(var(--rule) / var(--rule-alpha));
+  }
+  .card-body { @apply px-5 py-4; }
+
+  /* Fixed glass — used on the floating top nav island only */
+  .glass-fixed {
+    background: rgb(var(--glass-bg) / var(--glass-bg-alpha));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid rgb(var(--rule) / var(--rule-strong-alpha));
+    box-shadow: var(--shadow-card);
+  }
+
+  /* ============================================================== */
+  /* TYPOGRAPHY — cinema scale + eyebrow tag + tabular display num   */
+  /* ============================================================== */
+  .display-cinema {
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(4.5rem, 12vw, 11rem);
+    line-height: 1.0;
+    letter-spacing: -0.055em;
+    color: rgb(var(--ink));
+    padding-block: 0.04em;
+  }
+  .display-hero {
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(2.75rem, 6vw, 5.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    color: rgb(var(--ink));
+    padding-block: 0.04em;
+  }
+  .display-sans {
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: rgb(var(--ink));
+  }
+  /* Eyebrow tag — microscopic pill above an H1 / H2 */
+  .eyebrow {
+    @apply inline-flex items-center gap-2;
+    font-family: 'Geist Variable', 'Geist', ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-mute));
+    padding: 6px 12px;
+    border: 1px solid rgb(var(--rule) / var(--rule-alpha));
+    border-radius: 9999px;
+    background: rgb(var(--surface) / 0.6);
+  }
+  .eyebrow-accent { color: rgb(var(--accent)); border-color: rgb(var(--accent) / 0.35); }
+
+  /* Brutalist legacy aliases kept callable */
+  .label {
+    font-family: 'Geist Variable', 'Geist', ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-mute));
+    line-height: 1.2;
+  }
+  .label-mute  { color: rgb(var(--ink-mute)); }
+  .label-amber { color: rgb(var(--accent)); }
+  .label-ink   { color: rgb(var(--ink)); }
+
+  .num-display {
+    font-family: 'Geist Variable', 'Geist', ui-monospace, monospace;
+    font-feature-settings: 'tnum', 'zero', 'ss19';
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: rgb(var(--ink));
+  }
+  .num-amber { color: rgb(var(--accent)); }
+
+  .display {
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.0;
+    color: rgb(var(--ink));
+  }
+  .display-eyebrow {
+    font-family: 'Geist Variable', 'Geist', ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-mute));
+  }
+
+  /* ============================================================== */
+  /* ELITE PULSE — pulsing radial glow behind the card, only for     */
+  /* ≥90% match scores. Two stacked blurred blobs (gold) breathe in  */
+  /* opposite phases. No hue-rotate (chromatic surprise forbidden    */
+  /* per locked palette) and no continuous filter-blur recompute     */
+  /* per perf rule — animation is transform + opacity only.          */
+  /* ============================================================== */
+  [data-elite="true"] {
+    position: relative;
+  }
+  [data-elite="true"]::before,
+  [data-elite="true"]::after {
+    content: '';
+    position: absolute;
+    inset: -22px;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: -1;
+  }
+  /* Primary glow — wide gold radial, slow pulse. Locked palette: only
+   * accent + accent-hot + accent-glow. No coral / cyan chromatic surprises. */
+  [data-elite="true"]::before {
+    inset: -32px;
+    background:
+      radial-gradient(60% 60% at 30% 30%, rgb(var(--accent-hot) / 0.95) 0%, transparent 65%),
+      radial-gradient(55% 55% at 75% 65%, rgb(var(--accent-glow) / 0.80) 0%, transparent 65%);
+    filter: blur(20px);
+    opacity: 0.80;
+    animation: elite-pulse 3.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+  /* Secondary glow — gold, opposite phase for breathing depth */
+  [data-elite="true"]::after {
+    inset: -48px;
+    background:
+      radial-gradient(50% 50% at 70% 30%, rgb(var(--accent) / 0.70) 0%, transparent 65%),
+      radial-gradient(60% 60% at 30% 70%, rgb(var(--accent-glow) / 0.85) 0%, transparent 65%);
+    filter: blur(32px);
+    opacity: 0.70;
+    animation: elite-pulse 3.8s cubic-bezier(0.45, 0, 0.55, 1) infinite -1.9s;
+  }
+  /* Inset variant for overflow:hidden parents — projects the glow via
+   * a wider box-shadow drop instead of pseudo (which would clip). */
+  [data-elite="true"][data-elite-style="inset"]::before,
+  [data-elite="true"][data-elite-style="inset"]::after { display: none; }
+  [data-elite="true"][data-elite-style="inset"] {
+    box-shadow:
+      0 0 0 1.5px rgb(var(--accent) / 0.65),
+      0 0 48px rgb(var(--accent) / 0.60),
+      0 0 96px rgb(var(--accent-glow) / 0.40),
+      0 0 160px rgb(var(--accent-hot) / 0.22),
+      var(--shadow-card-hover);
+    animation: elite-shadow-pulse 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+  @keyframes elite-pulse {
+    0%, 100% { transform: scale(0.88); opacity: 0.55; }
+    50%      { transform: scale(1.14); opacity: 1; }
+  }
+  [data-elite="true"]::after { animation: elite-pulse-after 3.8s cubic-bezier(0.45, 0, 0.55, 1) infinite -1.9s; }
+  @keyframes elite-pulse-after {
+    0%, 100% { transform: scale(1.10); opacity: 0.30; }
+    50%      { transform: scale(0.88); opacity: 0.85; }
+  }
+  @keyframes elite-shadow-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 1px rgb(var(--accent) / 0.50),
+        0 0 32px rgb(var(--accent) / 0.40),
+        0 0 64px rgb(var(--accent-glow) / 0.22),
+        0 0 128px rgb(var(--accent-hot) / 0.14),
+        var(--shadow-card);
+    }
+    50% {
+      box-shadow:
+        0 0 0 2px rgb(var(--accent) / 0.80),
+        0 0 56px rgb(var(--accent) / 0.75),
+        0 0 112px rgb(var(--accent-glow) / 0.55),
+        0 0 200px rgb(var(--accent-hot) / 0.32),
+        var(--shadow-card-hover);
+    }
+  }
+
+  /* ============================================================== */
+  /* CUSTOM CURSOR — editorial ring + inner dot.                     */
+  /* Hide default cursor on devices with fine pointer; let cursor    */
+  /* re-appear on text inputs / textareas where caret affordance     */
+  /* matters. Outer ring snaps slow (smooth trail), inner dot snaps  */
+  /* fast (precise pointer). On hover over interactive surfaces, the */
+  /* ring expands and tints gold; dot fades to indicate "armed".     */
+  /* Driven by useCursorLight composable -> --mx / --my on :root.    */
+  /* ============================================================== */
+  @media (hover: hover) and (pointer: fine) {
+    /* Nuclear hide -- component-level .btn { cursor: pointer } akan kalah,
+       cursor OS benar-benar hilang di mana saja. !important defensible
+       di sini karena custom cursor menggantikan affordance secara global. */
+    *, *::before, *::after { cursor: none !important; }
+    /* Text caret tetap muncul di field input -- accessibility:
+       operator perlu tahu posisi caret saat mengetik. */
+    input[type="text"], input[type="password"], input[type="email"],
+    input[type="search"], input[type="number"], input[type="tel"],
+    input[type="url"], textarea, [contenteditable="true"],
+    [contenteditable=""] { cursor: text !important; }
+  }
+
+  .cursor-dot,
+  .cursor-halo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 2147483647;
+    border-radius: 9999px;
+    will-change: transform;
+    transform: translate3d(calc(var(--mx, 0px) - 50%), calc(var(--my, 0px) - 50%), 0);
+    isolation: isolate;
+  }
+
+  .cursor-dot {
+    width: 8px;
+    height: 8px;
+    background: #ffffff;
+    mix-blend-mode: difference;
+    box-shadow:
+      0 0 8px rgb(255 255 255 / 0.55),
+      0 0 18px rgb(255 255 255 / 0.30);
+    transition: transform 30ms linear,
+                opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                height 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .cursor-halo {
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1.5px solid #ffffff;
+    box-shadow:
+      0 0 14px rgb(255 255 255 / 0.35);
+    mix-blend-mode: difference;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                width   240ms cubic-bezier(0.22, 1, 0.36, 1),
+                height  240ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                background-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    opacity: 1;
+  }
+
+  /* "Armed" state -- hovering over button / link / input */
+  body[data-cursor-hover="true"] .cursor-halo {
+    width: 40px;
+    height: 40px;
+    border-color: rgb(var(--accent) / 0.85);
+    background: rgb(var(--accent) / 0.06);
+  }
+  body[data-cursor-hover="true"] .cursor-dot {
+    width: 3px;
+    height: 3px;
+    opacity: 0.85;
+  }
+
+  /* "Mousedown / clicking" state -- ring snaps small */
+  body[data-cursor-down="true"] .cursor-halo {
+    width: 20px;
+    height: 20px;
+    background: rgb(var(--accent) / 0.18);
+    border-color: rgb(var(--accent));
+  }
+
+  body[data-cursor-active="false"] .cursor-dot,
+  body[data-cursor-active="false"] .cursor-halo { opacity: 0; }
+
+  @media (pointer: coarse), (hover: none) {
+    .cursor-dot, .cursor-halo { display: none; }
+    html, body, body * { cursor: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cursor-dot, .cursor-halo { transition: opacity 200ms ease; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-elite="true"]::before,
+    [data-elite="true"]::after { animation: none !important; }
+  }
+
+  /* Hairline rule utilities */
+  .rule        { border-color: rgb(var(--rule) / var(--rule-alpha)); }
+  .rule-strong { border-color: rgb(var(--rule) / var(--rule-strong-alpha)); }
+  .rule-t  { border-top:    1px solid rgb(var(--rule) / var(--rule-alpha)); }
+  .rule-r  { border-right:  1px solid rgb(var(--rule) / var(--rule-alpha)); }
+  .rule-b  { border-bottom: 1px solid rgb(var(--rule) / var(--rule-alpha)); }
+  .rule-l  { border-left:   1px solid rgb(var(--rule) / var(--rule-alpha)); }
+
+  /* ============================================================== */
+  /* BUTTONS — Apple-style pill with optional button-in-button icon */
+  /* ============================================================== */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 select-none;
+    position: relative;
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.005em;
+    padding: 10px 18px;
+    border: 1px solid rgb(var(--rule) / var(--rule-strong-alpha));
+    background: rgb(var(--surface));
+    color: rgb(var(--ink));
+    border-radius: 9999px;
+    cursor: pointer;
+    box-shadow: var(--shadow-card);
+    transition:
+      transform var(--dur-160) var(--ease-out),
+      box-shadow var(--dur-160) var(--ease-out),
+      border-color var(--dur-160) var(--ease-out),
+      background-color var(--dur-160) var(--ease-out),
+      color var(--dur-160) var(--ease-out);
+  }
+  .btn:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgb(var(--rule) / var(--rule-strong-alpha));
+    transform: translateY(-1px);
+  }
+  .btn:active { transform: translateY(0) scale(0.98); }
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.30), var(--shadow-card);
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* Button-in-button trailing icon nest — Apple/Stripe signature */
+  .btn-icon-nest {
+    @apply inline-flex items-center justify-center;
+    width: 26px;
+    height: 26px;
+    margin: -4px -8px -4px 4px;
+    border-radius: 9999px;
+    background: rgb(var(--ink) / 0.06);
+    color: inherit;
+    transition: transform var(--dur-160) var(--ease-out), background-color var(--dur-160) var(--ease-out);
+  }
+  .btn:hover .btn-icon-nest {
+    transform: translate(2px, -1px) scale(1.06);
+    background: rgb(var(--ink) / 0.10);
+  }
+
+  /* Primary — filled, ink on accent / inverted */
+  .btn-amber {
+    color: rgb(var(--surface));
+    background: rgb(var(--ink));
+    border-color: rgb(var(--ink));
+  }
+  .btn-amber:hover {
+    background: rgb(var(--ink) / 0.88);
+    border-color: rgb(var(--ink) / 0.88);
+    color: rgb(var(--surface));
+  }
+  .btn-amber .btn-icon-nest { background: rgb(var(--surface) / 0.12); }
+  .btn-amber:hover .btn-icon-nest { background: rgb(var(--surface) / 0.20); }
+
+  /* Accent variant — refined indigo */
+  .btn-accent {
+    color: white;
+    background: rgb(var(--accent));
+    border-color: rgb(var(--accent));
+  }
+  .btn-accent:hover {
+    background: rgb(var(--accent-hot));
+    border-color: rgb(var(--accent-hot));
+  }
+  .btn-accent .btn-icon-nest { background: rgb(255 255 255 / 0.18); }
+
+  .btn-ghost {
+    color: rgb(var(--ink-2));
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+  .btn-ghost:hover {
+    color: rgb(var(--ink));
+    background: rgb(var(--surface-2));
+    box-shadow: none;
+    transform: translateY(-1px);
+  }
+  .btn-danger {
+    color: white;
+    background: rgb(var(--crit));
+    border-color: rgb(var(--crit));
+  }
+  .btn-danger:hover { background: rgb(var(--coral-hot)); border-color: rgb(var(--coral-hot)); }
+  .btn-danger .btn-icon-nest { background: rgb(255 255 255 / 0.18); }
+
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .btn-lg {
+    padding: 14px 24px;
+    font-size: 15px;
+  }
+
+  /* Split button — refined: single pill, internal hairline divider */
+  .split-btn {
+    display: inline-flex;
+    align-items: stretch;
+    height: 38px;
+    border: 1px solid rgb(var(--ink));
+    border-radius: 9999px;
+    overflow: hidden;
+    background: rgb(var(--ink));
+    box-shadow: var(--shadow-card);
+    transition: box-shadow var(--dur-160) var(--ease-out),
+                background-color var(--dur-160) var(--ease-out),
+                opacity var(--dur-160) var(--ease-out);
+  }
+  .split-btn:not(.is-disabled):hover {
+    background: rgb(var(--ink) / 0.88);
+    border-color: rgb(var(--ink) / 0.88);
+    box-shadow: var(--shadow-card-hover);
+  }
+  .split-btn.is-disabled { opacity: 0.45; cursor: not-allowed; }
+  .split-btn.is-running {
+    border-color: rgb(var(--accent));
+    background: rgb(var(--accent));
+  }
+  .split-btn.is-stopping {
+    border-color: rgb(var(--crit));
+    background: rgb(var(--crit));
+  }
+  .split-btn-main,
+  .split-btn-menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: rgb(var(--surface));
+    cursor: pointer;
+    transition: background-color var(--dur-160) var(--ease-out);
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+  }
+  .split-btn-main {
+    gap: 8px;
+    padding: 0 16px;
+    font-weight: 600;
+    font-size: 13px;
+    border: 0;
+  }
+  .split-btn-menu {
+    width: 36px;
+    border: 0;
+  }
+  .split-btn-divider {
+    width: 1px;
+    background: rgb(255 255 255 / 0.18);
+    align-self: stretch;
+  }
+  .split-btn-main:disabled,
+  .split-btn-menu:disabled { cursor: not-allowed; }
+  .split-btn:focus-within {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.30), var(--shadow-card);
+  }
+
+  /* ============================================================== */
+  /* INPUTS — soft squircle, generous padding, focus ring             */
+  /* ============================================================== */
+  .input {
+    @apply w-full;
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    background: rgb(var(--surface));
+    border: 1px solid rgb(var(--rule) / var(--rule-strong-alpha));
+    color: rgb(var(--ink));
+    border-radius: 12px;
+    transition: border-color var(--dur-160) var(--ease-out),
+                box-shadow var(--dur-160) var(--ease-out);
+  }
+  .input::placeholder { color: rgb(var(--ink-mute)); }
+  .input:focus {
+    outline: none;
+    border-color: rgb(var(--accent));
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.20);
+  }
+
+  /* ============================================================== */
+  /* DOTS — soft circles back from brutalist squares                  */
+  /* ============================================================== */
+  .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 9999px;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+  .dot-amber { color: rgb(var(--accent)); }
+  .dot-cyan  { color: rgb(var(--cyan)); }
+  .dot-ok    { color: rgb(var(--ok)); }
+  .dot-warn  { color: rgb(var(--warn)); }
+  .dot-crit  { color: rgb(var(--crit)); }
+  .dot-mute  { color: rgb(var(--ink-mute)); }
+  .dot-glow {
+    box-shadow:
+      0 0 0 4px rgb(var(--accent) / 0.18),
+      0 0 16px rgb(var(--accent) / 0.45);
+  }
+
+  /* Live indicator — coral, soft pulse on outer ring */
+  .live-dot {
+    position: relative;
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 9999px;
+    background: rgb(var(--coral));
+  }
+  .live-dot::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 9999px;
+    background: rgb(var(--coral) / 0.32);
+    animation: pulse-soft 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  /* ============================================================== */
+  /* PILLS — true pill chips                                          */
+  /* ============================================================== */
+  .pill {
+    @apply inline-flex items-center gap-1.5;
+    font-family: 'Geist Variable', 'Geist', ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid rgb(var(--rule) / var(--rule-strong-alpha));
+    color: rgb(var(--ink-2));
+    border-radius: 9999px;
+    background: rgb(var(--surface) / 0.6);
+  }
+  .pill-amber { border-color: rgb(var(--accent) / 0.4); color: rgb(var(--accent)); background: rgb(var(--accent) / 0.06); }
+  .pill-ok    { border-color: rgb(var(--ok) / 0.4);    color: rgb(var(--ok));    background: rgb(var(--ok) / 0.06); }
+  .pill-warn  { border-color: rgb(var(--warn) / 0.4);  color: rgb(var(--warn));  background: rgb(var(--warn) / 0.06); }
+  .pill-crit  { border-color: rgb(var(--crit) / 0.4);  color: rgb(var(--crit));  background: rgb(var(--crit) / 0.06); }
+
+  /* ============================================================== */
+  /* LEDGER TABLE                                                     */
+  /* ============================================================== */
+  .ledger {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .ledger thead th {
+    @apply text-left;
+    font-family: 'Geist Variable', 'Geist', ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-mute));
+    padding: 14px 18px;
+    border-bottom: 1px solid rgb(var(--rule) / var(--rule-alpha));
+    background: transparent;
+  }
+  .ledger tbody td {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgb(var(--rule) / var(--rule-alpha));
+    color: rgb(var(--ink));
+    vertical-align: middle;
+  }
+  .ledger tbody tr {
+    transition: background-color var(--dur-160) var(--ease-out);
+  }
+  .ledger tbody tr:hover td { background: rgb(var(--surface-2) / 0.6); }
+  .ledger tbody tr:last-child td { border-bottom: none; }
+
+  /* ============================================================== */
+  /* MOTION                                                           */
+  /* ============================================================== */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(28px); filter: blur(8px); }
+    to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+  }
+  .fade-up { animation: fade-up 900ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+  .fade-up-stagger > * { animation: fade-up 900ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+  .fade-up-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .fade-up-stagger > *:nth-child(2) { animation-delay: 80ms; }
+  .fade-up-stagger > *:nth-child(3) { animation-delay: 160ms; }
+  .fade-up-stagger > *:nth-child(4) { animation-delay: 240ms; }
+  .fade-up-stagger > *:nth-child(5) { animation-delay: 320ms; }
+  .fade-up-stagger > *:nth-child(6) { animation-delay: 400ms; }
+  .fade-up-stagger > *:nth-child(7) { animation-delay: 480ms; }
+  .fade-up-stagger > *:nth-child(8) { animation-delay: 560ms; }
+
+  @keyframes aurora-drift {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50%      { transform: translate3d(-2%, 1.5%, 0) scale(1.04); }
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50%      { opacity: 0; transform: scale(2.4); }
+  }
+  .blink,
+  .pulse-amber,
+  .vermilion-fade,
+  .ink-blink,
+  .hud-breathe,
+  .hud-ticker-track { animation: none !important; }
+
+  /* ============================================================== */
+  /* SONNER — refined squircle toast                                  */
+  /* ============================================================== */
+  [data-sonner-toaster] {
+    --normal-bg: rgb(var(--surface));
+    --normal-text: rgb(var(--ink));
+    --normal-border: rgb(var(--rule) / var(--rule-strong-alpha));
+    --success-bg: rgb(var(--surface));
+    --success-border: rgb(var(--ok));
+    --error-bg: rgb(var(--surface));
+    --error-border: rgb(var(--crit));
+  }
+  [data-sonner-toast] {
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif !important;
+    font-size: 13px !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow-card) !important;
+    backdrop-filter: none !important;
+  }
+  [data-sonner-toast] [data-title] { color: rgb(var(--ink)); font-weight: 600; }
+  [data-sonner-toast] [data-description] { color: rgb(var(--ink-2)); }
+
+  /* ============================================================== */
+  /* BACKWARDS-COMPAT SHIMS                                           */
+  /* HUD + paper-era class names mapped to refined-cinematic primitives */
+  /* ============================================================== */
+  .hud-panel       { @apply card; }
+  .hud-panel-head  { @apply card-head; }
+  .hud-panel-title { @apply label; }
+  .hud-panel-body  { @apply card-body; }
+  .hud-btn         { @apply btn btn-ghost; }
+  .hud-btn-primary { @apply btn btn-amber; }
+  .hud-btn-danger  { @apply btn btn-danger; }
+  .hud-btn-ghost   { @apply btn btn-ghost; }
+  .hud-input       { @apply input; }
+  .hud-chip        { @apply pill; }
+  .hud-pill        { @apply pill; }
+  .hud-pill-ok     { @apply pill pill-ok; }
+  .hud-pill-warn   { @apply pill pill-warn; }
+  .hud-pill-crit   { @apply pill pill-crit; }
+  .hud-pill-info   { @apply pill pill-amber; }
+  .hud-pill-accent { @apply pill pill-amber; }
+  .hud-pill-muted  { @apply pill; }
+  .hud-led         { @apply dot; }
+  .hud-led-ok      { @apply dot dot-ok; }
+  .hud-led-warn    { @apply dot dot-warn; }
+  .hud-led-crit    { @apply dot dot-crit; }
+  .hud-led-accent  { @apply dot dot-amber; }
+  .hud-led-muted   { @apply dot dot-mute; }
+  .hud-table       { @apply ledger; }
+  .hud-divider     { height: 1px; background: rgb(var(--rule) / var(--rule-alpha)); }
+  .hud-mono-num    { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum','ss01'; }
+  .hud-tab {
+    @apply cursor-pointer;
+    font-family: 'Geist Variable', 'Geist', ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-mute));
+    padding: 10px 14px;
+    border-bottom: 2px solid transparent;
+    transition: color var(--dur-160) var(--ease-out),
+                border-color var(--dur-160) var(--ease-out);
+  }
+  .hud-tab:hover  { color: rgb(var(--ink)); }
+  .hud-tab-active { color: rgb(var(--accent)); border-color: rgb(var(--accent)); }
+  .hud-stripe { background: transparent; }
+  .hud-glass       { @apply card; }
+  .hud-glass-strong{ @apply card; }
+  .hud-glass-edge  { box-shadow: none; }
+  .hud-bracket-l::before { content: ''; }
+  .hud-bracket-r::after  { content: ''; }
+  .hud-map-vignette { background: transparent; }
+  .hud-map-btn      { @apply btn btn-ghost; width: 36px; height: 36px; padding: 0; border-radius: 9999px; }
+  .hud-context-item {
+    @apply block w-full px-3 py-2;
+    font-family: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    color: rgb(var(--ink));
+    border-radius: 10px;
+  }
+  .hud-context-item:hover { background: rgb(var(--surface-2)); }
+
+  .label-mono {
+    font-family: 'Geist Variable', 'Geist', ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-mute));
+  }
+  .smallcaps   { text-transform: uppercase; letter-spacing: 0.18em; font-weight: 500; }
+  .dropcap::first-letter {
+    font-weight: 700;
+    font-size: 2.6em;
+    line-height: 0.9;
+    float: left;
+    margin: 0 0.08em 0 0;
+    color: rgb(var(--accent));
+  }
+}
+
+@layer utilities {
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { scrollbar-width: none; }
+
+  .text-ink       { color: rgb(var(--ink)); }
+  .text-ink-2     { color: rgb(var(--ink-2)); }
+  .text-ink-mute  { color: rgb(var(--ink-mute)); }
+  .text-amber     { color: rgb(var(--accent)); }
+  .text-amber-hot { color: rgb(var(--accent-hot)); }
+  .text-cyan      { color: rgb(var(--cyan)); }
+  .text-coral     { color: rgb(var(--coral)); }
+  .text-vermilion { color: rgb(var(--accent)); }
+  .text-accent-ink{ color: rgb(var(--accent)); }
+  .text-gold-leaf { color: rgb(var(--accent-hot)); }
+  .text-phosphor  { color: rgb(var(--phosphor)); }
+
+  .bg-bg        { background-color: rgb(var(--bg)); }
+  .bg-surface   { background-color: rgb(var(--surface)); }
+  .bg-surface-2 { background-color: rgb(var(--surface-2)); }
+  .bg-surface-3 { background-color: rgb(var(--surface-3)); }
+  .bg-shell     { background-color: rgb(var(--shell)); }
+  .bg-amber     { background-color: rgb(var(--accent)); }
+  .bg-amber-soft{ background-color: rgb(var(--accent) / 0.10); }
+  .bg-paper     { background-color: rgb(var(--bg)); }
+  .bg-paper-2   { background-color: rgb(var(--surface)); }
+
+  .bg-aurora    { background-image: var(--aurora-1), var(--aurora-2), var(--aurora-3); }
+
+  .border-rule        { border-color: rgb(var(--rule) / var(--rule-alpha)); }
+  .border-rule-strong { border-color: rgb(var(--rule) / var(--rule-strong-alpha)); }
+  .border-amber       { border-color: rgb(var(--accent)); }
+  .border-ink         { border-color: rgb(var(--ink)); }
+}

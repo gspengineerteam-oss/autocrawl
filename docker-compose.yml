@@ -1,0 +1,687 @@
+name: autocrawl
+
+services:
+  crawler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        HF_TOKEN: ${HF_TOKEN:-}
+    image: autocrawl/crawler:latest
+    container_name: autocrawl-crawler
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      CHROMA_HOST: chroma
+      CHROMA_PORT: "8000"
+      FLARESOLVERR_URL: http://flaresolverr:8191/v1
+      LANGFUSE_HOST: http://langfuse-web:3000
+      DATABASE_URL: postgresql+asyncpg://postgres:123@autocrawl-db:5432/autocrawl
+      DATA_DIR: /app/data
+      LOG_DIR: /app/logs
+      CONFIG_DIR: /app/config
+      # Snowglobe — /app/tools bind-mounted, make it importable as `tools.*`
+      PYTHONPATH: /app
+      # Translation disabled at deterministic-pipeline level. Agentic
+      # crawler does its own EN→ID via Mistral (agentic_crawler.translator).
+      # NLLB infra removed 2026-05-08.
+      TRANSLATION_ENABLED: "false"
+      TRANSLATION_PROVIDER: none
+      TARGET_LANGUAGE: id
+      ENABLE_OPENSERP: "true"
+      OPENSERP_URL: http://openserp:7000
+      # Yandex paling lenient (gak captcha-heavy), bing+google tambahan untuk
+      # coverage. Baidu skip — wajib residential proxy biar gak kena captcha
+      # tiap query, ga ada gunanya tanpa proxy infra.
+      OPENSERP_ENGINES: ${OPENSERP_ENGINES:-yandex,bing,google}
+      OPENSERP_MAX_RETRIES: "1"
+      ENABLE_SEARXNG: "true"
+      SEARXNG_URL: http://searxng:8080
+      ENABLE_REDDIT: "true"
+      ENABLE_HACKERNEWS: "true"
+      ENABLE_GITHUB_SEARCH: "true"
+      ENABLE_ARXIV: "true"
+      ENABLE_OPENALEX: "true"
+      ENABLE_SEMANTIC_SCHOLAR: "true"
+      ENABLE_INTERNET_ARCHIVE: "true"
+      ENABLE_WAYBACK_CDX: "true"
+      ENABLE_JINA_READER: "true"
+      ENABLE_DIRECTORY_SCRAPE: "true"
+      ENABLE_KATANA: "true"
+      ENABLE_CRTSH: "true"
+      ENABLE_TAVILY: ${ENABLE_TAVILY:-false}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      ENABLE_BRAVE: ${ENABLE_BRAVE:-false}
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      ENABLE_BING: ${ENABLE_BING:-false}
+      BING_API_KEY: ${BING_API_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ENABLE_URLSCAN: ${ENABLE_URLSCAN:-false}
+      URLSCAN_API_KEY: ${URLSCAN_API_KEY:-}
+      # Fully remote Ollama (LAN). Chat: qwen3.6:35b MoE Q4. Embedding:
+      # embeddinggemma:300m (768-dim, BF16). Ga butuh ollama lokal.
+      # Untuk switch ke Groq atau OpenAI, ubah LLM_PROVIDER lewat .env.
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_BASE_URL: http://10.83.81.246:11434
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-http://10.83.81.246:11434}
+      # gpt-oss:20b — OpenAI's open-source MoE (Apache 2.0). 20B total /
+      # 3.6B active params, ~13GB at q4. Native harmony format = clean tool
+      # calls + JSON output, reasoning_effort dialable per call. One model
+      # serves all three tiers; flip individual envs to split if needed.
+      OPENAI_MODEL_HEAVY: ${OPENAI_MODEL_HEAVY:-gpt-oss:20b}
+      OPENAI_MODEL_LIGHT: ${OPENAI_MODEL_LIGHT:-gpt-oss:20b}
+      OPENAI_MODEL_TINY: ${OPENAI_MODEL_TINY:-gpt-oss:20b}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-qwen3-embedding:8b}
+      # Performance knobs — see backend/src/crawler/config.py for details.
+      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-8192}
+      OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-1024}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
+      # Hide reasoning trace in API responses (Qwen3 think:false equivalent).
+      OLLAMA_REASONING: ${OLLAMA_REASONING:-false}
+      # gpt-oss harmony reasoning_effort — low|medium|high. `low` for fast
+      # extraction; bump to medium/high if quality of synthesis matters more.
+      OLLAMA_REASONING_EFFORT: ${OLLAMA_REASONING_EFFORT:-low}
+      # Strict json_schema first; gpt-oss honors it. Set to false for models
+      # that need the raw_json_format sledgehammer instead.
+      OLLAMA_STRUCTURED_FAST: ${OLLAMA_STRUCTURED_FAST:-true}
+      # Phase 2 — Redis-backed LLM concurrency queue. Cluster-wide cap on
+      # simultaneous Ollama ainvoke() per tier so the daemon's queue can't
+      # collapse under parallel agentic + base-crawler load.
+      LLM_QUEUE_ENABLED: ${LLM_QUEUE_ENABLED:-true}
+      LLM_QUEUE_VISION_CONCURRENCY: ${LLM_QUEUE_VISION_CONCURRENCY:-6}
+      LLM_QUEUE_HEAVY_CONCURRENCY: ${LLM_QUEUE_HEAVY_CONCURRENCY:-4}
+      LLM_QUEUE_LIGHT_CONCURRENCY: ${LLM_QUEUE_LIGHT_CONCURRENCY:-12}
+      LLM_QUEUE_TINY_CONCURRENCY: ${LLM_QUEUE_TINY_CONCURRENCY:-16}
+      LLM_QUEUE_ACQUIRE_TIMEOUT_S: ${LLM_QUEUE_ACQUIRE_TIMEOUT_S:-120}
+      # Phase 2 — VPN egress. Off by default; flipped on by the
+      # docker-compose.gluetun.yml overlay (or .env).
+      VPN_ENABLED: ${VPN_ENABLED:-false}
+      PROXY_URL: ${PROXY_URL:-}
+      PROXY_MAX_CONSECUTIVE_FAILURES: ${PROXY_MAX_CONSECUTIVE_FAILURES:-3}
+      ENABLE_FORCE_MULTILINGUAL_SEARCH: ${ENABLE_FORCE_MULTILINGUAL_SEARCH:-true}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_BASE_URL: https://api.groq.com/openai/v1
+      # Quantity pivot 2026-05-21 - multi-provider escape hatch
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      # Storage: JSON files in data/reports are always written. Postgres mirror
+      # is opt-in (set PERSIST_TO_DB=true) — required only if you want the
+      # FastAPI/dashboard endpoints to return data.
+      PERSIST_TO_DB: ${PERSIST_TO_DB:-false}
+    depends_on:
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+      flaresolverr:
+        condition: service_started
+      autocrawl-db:
+        condition: service_healthy
+      openserp:
+        condition: service_started
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+      - ./database:/app/database:ro
+      - ./backend/scripts:/app/scripts:ro
+      # Snowglobe reset 2026-05-25 — first-party skills lives at repo root,
+      # outside the backend/ build context. Bind-mount so the agentic
+      # pipeline can `from tools.skills import military_classifier, ...`.
+      - ./tools:/app/tools:ro
+    networks: [crawl_net]
+    ports:
+      - "8080:8080"
+    shm_size: 4gb
+
+  api:
+    image: autocrawl/crawler:latest
+    container_name: autocrawl-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:123@autocrawl-db:5432/autocrawl
+      DATA_DIR: /app/data
+      LOG_DIR: /app/logs
+      CONFIG_DIR: /app/config
+      PYTHONPATH: /app
+      API_CORS_ORIGINS: http://localhost:5173,http://localhost:18090,http://gsp:8090,http://gsp.tailba2cde.ts.net:8090
+      # Translation disabled at deterministic-pipeline level. Agentic
+      # crawler does its own EN→ID via Mistral (agentic_crawler.translator).
+      # NLLB infra removed 2026-05-08.
+      TRANSLATION_ENABLED: "false"
+      TRANSLATION_PROVIDER: none
+      TARGET_LANGUAGE: id
+      ENABLE_OPENSERP: "true"
+      OPENSERP_URL: http://openserp:7000
+      # Yandex paling lenient (gak captcha-heavy), bing+google tambahan untuk
+      # coverage. Baidu skip — wajib residential proxy biar gak kena captcha
+      # tiap query, ga ada gunanya tanpa proxy infra.
+      OPENSERP_ENGINES: ${OPENSERP_ENGINES:-yandex,bing,google}
+      OPENSERP_MAX_RETRIES: "1"
+      ENABLE_SEARXNG: "true"
+      SEARXNG_URL: http://searxng:8080
+      ENABLE_REDDIT: "true"
+      ENABLE_HACKERNEWS: "true"
+      ENABLE_GITHUB_SEARCH: "true"
+      ENABLE_ARXIV: "true"
+      ENABLE_OPENALEX: "true"
+      ENABLE_SEMANTIC_SCHOLAR: "true"
+      ENABLE_INTERNET_ARCHIVE: "true"
+      ENABLE_WAYBACK_CDX: "true"
+      ENABLE_JINA_READER: "true"
+      ENABLE_DIRECTORY_SCRAPE: "true"
+      ENABLE_KATANA: "true"
+      ENABLE_CRTSH: "true"
+      ENABLE_TAVILY: ${ENABLE_TAVILY:-false}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      ENABLE_BRAVE: ${ENABLE_BRAVE:-false}
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      ENABLE_BING: ${ENABLE_BING:-false}
+      BING_API_KEY: ${BING_API_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ENABLE_URLSCAN: ${ENABLE_URLSCAN:-false}
+      URLSCAN_API_KEY: ${URLSCAN_API_KEY:-}
+      # Fully remote Ollama (LAN). Chat: qwen3.6:35b MoE Q4. Embedding:
+      # embeddinggemma:300m (768-dim, BF16). Ga butuh ollama lokal.
+      # Untuk switch ke Groq atau OpenAI, ubah LLM_PROVIDER lewat .env.
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_BASE_URL: http://10.83.81.246:11434
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-http://10.83.81.246:11434}
+      # gpt-oss:20b — OpenAI's open-source MoE (Apache 2.0). 20B total /
+      # 3.6B active params, ~13GB at q4. Native harmony format = clean tool
+      # calls + JSON output, reasoning_effort dialable per call. One model
+      # serves all three tiers; flip individual envs to split if needed.
+      OPENAI_MODEL_HEAVY: ${OPENAI_MODEL_HEAVY:-gpt-oss:20b}
+      OPENAI_MODEL_LIGHT: ${OPENAI_MODEL_LIGHT:-gpt-oss:20b}
+      OPENAI_MODEL_TINY: ${OPENAI_MODEL_TINY:-gpt-oss:20b}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-qwen3-embedding:8b}
+      # Performance knobs — see backend/src/crawler/config.py for details.
+      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-8192}
+      OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-1024}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
+      # Hide reasoning trace in API responses (Qwen3 think:false equivalent).
+      OLLAMA_REASONING: ${OLLAMA_REASONING:-false}
+      # gpt-oss harmony reasoning_effort — low|medium|high. `low` for fast
+      # extraction; bump to medium/high if quality of synthesis matters more.
+      OLLAMA_REASONING_EFFORT: ${OLLAMA_REASONING_EFFORT:-low}
+      # Strict json_schema first; gpt-oss honors it. Set to false for models
+      # that need the raw_json_format sledgehammer instead.
+      OLLAMA_STRUCTURED_FAST: ${OLLAMA_STRUCTURED_FAST:-true}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_BASE_URL: https://api.groq.com/openai/v1
+      # Quantity pivot 2026-05-21 - multi-provider escape hatch
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      # Storage: JSON files in data/reports are always written. Postgres mirror
+      # is opt-in (set PERSIST_TO_DB=true) — required only if you want the
+      # FastAPI/dashboard endpoints to return data.
+      PERSIST_TO_DB: ${PERSIST_TO_DB:-false}
+    depends_on:
+      autocrawl-db:
+        condition: service_healthy
+      crawler:
+        condition: service_started
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+      - ./database:/app/database:ro
+      - ./backend/scripts:/app/scripts:ro
+      - ./tools:/app/tools:ro
+    command:
+      ["uvicorn", "crawler.api:app", "--host", "0.0.0.0", "--port", "8081", "--proxy-headers"]
+    networks: [crawl_net]
+    ports:
+      - "127.0.0.1:18081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # NLLB-setup service removed 2026-05-08. Agentic translator (Mistral via
+  # Ollama) replaced NLLB-200 entirely; deterministic translator path is
+  # disabled via TRANSLATION_PROVIDER=none.
+
+  # AI-driven sibling crawler. Independent process, same data sink as `crawler`.
+  # Vision-capable LLM (qwen3.6:27b on the LAN Ollama) drives a real Chromium
+  # via Browser-Use, scrolling and clicking like a human to extract exhibitor
+  # data from sites the deterministic 6-tier scraper struggles with.
+  #
+  # OFF by default. Enable with:
+  #   1. AGENTIC_ENABLED=true in .env
+  #   2. Populate config/agentic_seeds.yaml with target sites
+  #   3. docker compose --profile agentic up -d agentic-crawler
+  #
+  # The base crawler stack runs unaffected when this profile is not selected.
+  # Twin agentic containers — `agentic-a` and `agentic-b` — each running the
+  # COMBINED listing+enrich pool. Per Phase 3 plan the operator wanted both
+  # pools' chromiums visible in EACH VNC, not segregated by container. Each
+  # twin runs:
+  #   - 2 listing-pool Browser-Use agents (workspace 1 in fluxbox)
+  #   - 2 enrich-pool Browser-Use agents  (workspace 2 in fluxbox)
+  # = 4 chromium per VNC × 2 VNCs = 8 chromium total system-wide.
+  #
+  # Listing-side scheduler lock is now PER-HOSTNAME so both twins can run
+  # passes in parallel without fighting one global lock. Both consume the
+  # same `agentic:enrich:queue` Redis stream — Redis consumer-group fan-out
+  # load-balances across all 4 enrich workers (2 per twin) automatically.
+
+  agentic-a:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.agentic
+    image: autocrawl/agentic-crawler:latest
+    container_name: autocrawl-agentic-a
+    hostname: agentic-a
+    profiles: ["agentic"]
+    restart: unless-stopped
+    # P1.3 — give scheduler 30s to flush state (release lock, drain heartbeat,
+    # close LLM sockets) before docker sends SIGKILL. cdp_cascade_prevention
+    # now triggers os._exit(1) which docker will see and restart automatically.
+    stop_grace_period: 30s
+    # 2026-05-21: bump nofile dari default 1024 ke 65536 supaya google-genai
+    # client (yang leak httpx connections walau dipakai singleton) gak
+    # bikin "Too many open files" setelah 1 jam.
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:123@autocrawl-db:5432/autocrawl
+      REDIS_URL: redis://redis:6379/0
+      CHROMA_HOST: chroma
+      CHROMA_PORT: "8000"
+      DATA_DIR: /app/data
+      LOG_DIR: /app/logs
+      CONFIG_DIR: /app/config
+      PYTHONPATH: /app
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_BASE_URL: http://10.83.81.246:11434
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-http://10.83.81.246:11434}
+      # FORCE these when the `agentic` profile is invoked. Hard-coded (not
+      # ${VAR:-default}) so the user doesn't have to remember to flip them
+      # in .env — opting into the profile = opting into a running agent.
+      AGENTIC_ENABLED: "true"
+      # Headless OFF so Chromium draws to the Xvfb virtual display, which
+      # noVNC streams to http://localhost:7900/vnc.html for live monitoring.
+      AGENTIC_HEADLESS: "false"
+      AGENTIC_LLM_BASE_URL: ${AGENTIC_LLM_BASE_URL:-http://10.83.81.246:11434}
+      AGENTIC_VISION_MODEL: ${AGENTIC_VISION_MODEL:-qwen3.6:27b}
+      AGENTIC_USE_VISION: ${AGENTIC_USE_VISION:-true}
+      AGENTIC_MAX_ACTIONS: ${AGENTIC_MAX_ACTIONS:-20}
+      AGENTIC_TASK_TIMEOUT: ${AGENTIC_TASK_TIMEOUT:-1800}
+      AGENTIC_RUN_INTERVAL_MIN: ${AGENTIC_RUN_INTERVAL_MIN:-60}
+      # Quantity pivot 2026-05-21 - escape hatch dari Ollama VPN outage
+      AGENTIC_LLM_PROVIDER: ${AGENTIC_LLM_PROVIDER:-ollama}
+      AGENTIC_GROUNDING_FIRST: ${AGENTIC_GROUNDING_FIRST:-false}
+      AGENTIC_GROUNDING_MODEL: ${AGENTIC_GROUNDING_MODEL:-gemini-flash-latest}
+      AGENTIC_GROUNDING_MIN_THRESHOLD: ${AGENTIC_GROUNDING_MIN_THRESHOLD:-5}
+      AGENTIC_DEEP_RESEARCH_MODEL: ${AGENTIC_DEEP_RESEARCH_MODEL:-deep-research-preview-04-2026}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      AGENTIC_RECORD_SCREENSHOTS: ${AGENTIC_RECORD_SCREENSHOTS:-true}
+      AGENTIC_RECORD_CONVERSATION: ${AGENTIC_RECORD_CONVERSATION:-true}
+      # Per-twin parallel: 2 listing + 2 enrich = 4 chromium in this VNC.
+      # The other twin (`agentic-b`) does the same → 8 chromium total.
+      AGENTIC_PARALLEL_SEEDS: ${AGENTIC_PARALLEL_SEEDS:-2}
+      AGENTIC_ENRICH_PARALLEL: ${AGENTIC_ENRICH_PARALLEL:-2}
+      # Phase 2 — multi-region search forcing. When true: expand_seeds()
+      # produces EN+zh+ja+ko+ru per topic and search_all() fans out to
+      # Baidu/Naver/Yahoo Japan unconditionally. Defaults ON for agentic.
+      AGENTIC_FORCE_MULTILINGUAL: ${AGENTIC_FORCE_MULTILINGUAL:-true}
+      ENABLE_FORCE_MULTILINGUAL_SEARCH: ${ENABLE_FORCE_MULTILINGUAL_SEARCH:-true}
+      # Phase 2 — Redis-backed LLM concurrency queue. Caps simultaneous
+      # ainvoke() calls per tier so 4 parallel Browser-Use seeds can't
+      # collapse the Ollama daemon's request queue. Defaults sized for
+      # 2× RTX PRO 6000 (192 GB VRAM total).
+      LLM_QUEUE_ENABLED: ${LLM_QUEUE_ENABLED:-true}
+      LLM_QUEUE_VISION_CONCURRENCY: ${LLM_QUEUE_VISION_CONCURRENCY:-6}
+      LLM_QUEUE_HEAVY_CONCURRENCY: ${LLM_QUEUE_HEAVY_CONCURRENCY:-4}
+      LLM_QUEUE_LIGHT_CONCURRENCY: ${LLM_QUEUE_LIGHT_CONCURRENCY:-12}
+      LLM_QUEUE_TINY_CONCURRENCY: ${LLM_QUEUE_TINY_CONCURRENCY:-16}
+      LLM_QUEUE_ACQUIRE_TIMEOUT_S: ${LLM_QUEUE_ACQUIRE_TIMEOUT_S:-120}
+      # 2026-05-24 enrichment-first pivot. Discovery and listing dimatikan
+      # semua, pool agentic fokus penuh ke backfill enrich. Flag JINA_LISTING,
+      # AWESOME, CISA default true di config.py jadi WAJIB di-declare false di
+      # sini biar gak nyala lewat default. Backfill drainer tarik vendor dari
+      # Postgres berdasarkan enrichment_gap dan republish ke enrich queue.
+      AGENTIC_ENRICH_ENABLED: ${AGENTIC_ENRICH_ENABLED:-true}
+      AGENTIC_LISTING_ENABLED: ${AGENTIC_LISTING_ENABLED:-false}
+      AGENTIC_DISCOVERY_ENABLED: ${AGENTIC_DISCOVERY_ENABLED:-false}
+      AGENTIC_JINA_LISTING_ENABLED: ${AGENTIC_JINA_LISTING_ENABLED:-false}
+      AGENTIC_LISTING_AWESOME: ${AGENTIC_LISTING_AWESOME:-false}
+      AGENTIC_LISTING_CISA: ${AGENTIC_LISTING_CISA:-false}
+      AGENTIC_BACKFILL_ENABLED: ${AGENTIC_BACKFILL_ENABLED:-true}
+      AGENTIC_BACKFILL_INTERVAL_SECONDS: ${AGENTIC_BACKFILL_INTERVAL_SECONDS:-600}
+      AGENTIC_BACKFILL_BATCH_LIMIT: ${AGENTIC_BACKFILL_BATCH_LIMIT:-25}
+      AGENTIC_BACKFILL_HIGH_WATER: ${AGENTIC_BACKFILL_HIGH_WATER:-50}
+      AGENTIC_LISTING_WORKSPACE_ID: ${AGENTIC_LISTING_WORKSPACE_ID:-1}
+      AGENTIC_ENRICH_WORKSPACE_ID: ${AGENTIC_ENRICH_WORKSPACE_ID:-2}
+      AGENTIC_VNC_WORKSPACE_ASSIGNMENT_ENABLED: ${AGENTIC_VNC_WORKSPACE_ASSIGNMENT_ENABLED:-true}
+      # Phase 3.1 twin A handles half of the seed list per pass.
+      AGENTIC_SHARD_INDEX: "0"
+      AGENTIC_SHARD_TOTAL: "2"
+      AGENTIC_PERSISTENT_PROFILES: ${AGENTIC_PERSISTENT_PROFILES:-true}
+      # Browser-Use bubus event timeouts — defaults 30s are too tight for
+      # cold Chromium launch with persistent profile + Xvfb attach. 120s
+      # gives 4× headroom; nav events stay 60s for responsiveness.
+      TIMEOUT_BrowserStartEvent: "120"
+      TIMEOUT_BrowserLaunchEvent: "120"
+      TIMEOUT_BrowserConnectedEvent: "60"
+      TIMEOUT_NavigateToUrlEvent: "60"
+      TIMEOUT_BrowserStateRequestEvent: "60"
+      PERSIST_TO_DB: ${PERSIST_TO_DB:-true}
+      DISPLAY: ":99"
+      DISPLAY_NUM: "99"
+      VNC_RESOLUTION: "1280x800"
+    depends_on:
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+      autocrawl-db:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+      - ./tools:/app/tools:ro
+    networks: [crawl_net]
+    ports:
+      # noVNC for twin A — open http://localhost:7900/vnc.html
+      - "127.0.0.1:7900:7900"
+    shm_size: 2gb
+    command: ["agentic-crawl", "combined"]
+
+  agentic-b:
+    image: autocrawl/agentic-crawler:latest
+    container_name: autocrawl-agentic-b
+    hostname: agentic-b
+    profiles: ["agentic"]
+    restart: unless-stopped
+    # P1.3 — see agentic-a above; same rationale for graceful flush window.
+    stop_grace_period: 30s
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:123@autocrawl-db:5432/autocrawl
+      REDIS_URL: redis://redis:6379/0
+      CHROMA_HOST: chroma
+      CHROMA_PORT: "8000"
+      DATA_DIR: /app/data
+      LOG_DIR: /app/logs
+      CONFIG_DIR: /app/config
+      PYTHONPATH: /app
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_BASE_URL: http://10.83.81.246:11434
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-http://10.83.81.246:11434}
+      AGENTIC_ENABLED: "true"
+      AGENTIC_HEADLESS: "false"
+      AGENTIC_LLM_BASE_URL: ${AGENTIC_LLM_BASE_URL:-http://10.83.81.246:11434}
+      AGENTIC_VISION_MODEL: ${AGENTIC_VISION_MODEL:-qwen3-vl:30b}
+      AGENTIC_USE_VISION: ${AGENTIC_USE_VISION:-true}
+      AGENTIC_MAX_ACTIONS: ${AGENTIC_MAX_ACTIONS:-20}
+      AGENTIC_TASK_TIMEOUT: ${AGENTIC_TASK_TIMEOUT:-1800}
+      AGENTIC_RUN_INTERVAL_MIN: ${AGENTIC_RUN_INTERVAL_MIN:-60}
+      AGENTIC_RECORD_SCREENSHOTS: ${AGENTIC_RECORD_SCREENSHOTS:-true}
+      AGENTIC_RECORD_CONVERSATION: ${AGENTIC_RECORD_CONVERSATION:-true}
+      AGENTIC_PARALLEL_SEEDS: ${AGENTIC_PARALLEL_SEEDS:-2}
+      AGENTIC_ENRICH_PARALLEL: ${AGENTIC_ENRICH_PARALLEL:-2}
+      AGENTIC_FORCE_MULTILINGUAL: ${AGENTIC_FORCE_MULTILINGUAL:-true}
+      ENABLE_FORCE_MULTILINGUAL_SEARCH: ${ENABLE_FORCE_MULTILINGUAL_SEARCH:-true}
+      # Quantity pivot 2026-05-21 - escape hatch dari Ollama VPN outage
+      AGENTIC_LLM_PROVIDER: ${AGENTIC_LLM_PROVIDER:-ollama}
+      AGENTIC_GROUNDING_FIRST: ${AGENTIC_GROUNDING_FIRST:-false}
+      AGENTIC_GROUNDING_MODEL: ${AGENTIC_GROUNDING_MODEL:-gemini-flash-latest}
+      AGENTIC_GROUNDING_MIN_THRESHOLD: ${AGENTIC_GROUNDING_MIN_THRESHOLD:-5}
+      AGENTIC_DEEP_RESEARCH_MODEL: ${AGENTIC_DEEP_RESEARCH_MODEL:-deep-research-preview-04-2026}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_QUEUE_ENABLED: ${LLM_QUEUE_ENABLED:-true}
+      LLM_QUEUE_VISION_CONCURRENCY: ${LLM_QUEUE_VISION_CONCURRENCY:-6}
+      LLM_QUEUE_HEAVY_CONCURRENCY: ${LLM_QUEUE_HEAVY_CONCURRENCY:-4}
+      LLM_QUEUE_LIGHT_CONCURRENCY: ${LLM_QUEUE_LIGHT_CONCURRENCY:-12}
+      LLM_QUEUE_TINY_CONCURRENCY: ${LLM_QUEUE_TINY_CONCURRENCY:-16}
+      LLM_QUEUE_ACQUIRE_TIMEOUT_S: ${LLM_QUEUE_ACQUIRE_TIMEOUT_S:-120}
+      # 2026-05-24 enrichment-first pivot. Lihat catatan di agentic-a.
+      AGENTIC_ENRICH_ENABLED: ${AGENTIC_ENRICH_ENABLED:-true}
+      AGENTIC_LISTING_ENABLED: ${AGENTIC_LISTING_ENABLED:-false}
+      AGENTIC_DISCOVERY_ENABLED: ${AGENTIC_DISCOVERY_ENABLED:-false}
+      AGENTIC_JINA_LISTING_ENABLED: ${AGENTIC_JINA_LISTING_ENABLED:-false}
+      AGENTIC_LISTING_AWESOME: ${AGENTIC_LISTING_AWESOME:-false}
+      AGENTIC_LISTING_CISA: ${AGENTIC_LISTING_CISA:-false}
+      AGENTIC_BACKFILL_ENABLED: ${AGENTIC_BACKFILL_ENABLED:-true}
+      AGENTIC_BACKFILL_INTERVAL_SECONDS: ${AGENTIC_BACKFILL_INTERVAL_SECONDS:-600}
+      AGENTIC_BACKFILL_BATCH_LIMIT: ${AGENTIC_BACKFILL_BATCH_LIMIT:-25}
+      AGENTIC_BACKFILL_HIGH_WATER: ${AGENTIC_BACKFILL_HIGH_WATER:-50}
+      AGENTIC_LISTING_WORKSPACE_ID: ${AGENTIC_LISTING_WORKSPACE_ID:-1}
+      AGENTIC_ENRICH_WORKSPACE_ID: ${AGENTIC_ENRICH_WORKSPACE_ID:-2}
+      AGENTIC_VNC_WORKSPACE_ASSIGNMENT_ENABLED: ${AGENTIC_VNC_WORKSPACE_ASSIGNMENT_ENABLED:-true}
+      # Phase 3.1 twin B picks the OTHER half of the seed list per pass.
+      AGENTIC_SHARD_INDEX: "1"
+      AGENTIC_SHARD_TOTAL: "2"
+      AGENTIC_PERSISTENT_PROFILES: ${AGENTIC_PERSISTENT_PROFILES:-true}
+      TIMEOUT_BrowserStartEvent: "120"
+      TIMEOUT_BrowserLaunchEvent: "120"
+      TIMEOUT_BrowserConnectedEvent: "60"
+      TIMEOUT_NavigateToUrlEvent: "60"
+      TIMEOUT_BrowserStateRequestEvent: "60"
+      PERSIST_TO_DB: ${PERSIST_TO_DB:-true}
+      DISPLAY: ":99"
+      DISPLAY_NUM: "99"
+      VNC_RESOLUTION: "1280x800"
+    depends_on:
+      redis:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+      autocrawl-db:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+      - ./tools:/app/tools:ro
+    networks: [crawl_net]
+    ports:
+      # noVNC for twin B — open http://localhost:7901/vnc.html
+      - "127.0.0.1:7901:7900"
+    shm_size: 2gb
+    command: ["agentic-crawl", "combined"]
+
+  autocrawl-db:
+    image: postgres:16-alpine
+    container_name: autocrawl-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123"
+      POSTGRES_DB: autocrawl
+    volumes:
+      - autocrawl_pgdata:/var/lib/postgresql/data
+    networks: [crawl_net]
+    # Exposed so host-side tools (psql, agentic_crawler running outside Docker)
+    # can connect via localhost:5432.
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d autocrawl"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: autocrawl/frontend:latest
+    container_name: autocrawl-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks: [crawl_net]
+    ports:
+      - "127.0.0.1:18090:80"
+      - "127.0.0.1:18443:443"
+    volumes:
+      - ./frontend/certs:/etc/nginx/certs:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: autocrawl-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "100", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks: [crawl_net]
+    # Exposed so host-side tools (redis-cli, agentic_crawler running outside
+    # Docker) can connect via localhost:6379.
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  chroma:
+    # 0.5.23 = last v1 release. `:latest` is now v2 which dropped /api/v1 and
+    # 410-Gones every heartbeat from our v1 chromadb client.
+    image: chromadb/chroma:0.5.23
+    container_name: autocrawl-chroma
+    restart: unless-stopped
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks: [crawl_net]
+    ports:
+      - "8000:8000"
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: autocrawl-flaresolverr
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: info
+      TZ: UTC
+    networks: [crawl_net]
+    ports:
+      - "8191:8191"
+
+  openserp:
+    image: karust/openserp:latest
+    container_name: autocrawl-openserp
+    restart: unless-stopped
+    ports:
+      - "7000:7000"
+    # OpenSERP is a Cobra CLI. The image entrypoint is just `openserp` so we
+    # have to supply the subcommand. `serve` runs the HTTP API for all engines.
+    # Bind 0.0.0.0 so the crawler container can reach it; default 127.0.0.1
+    # would only listen inside the container itself.
+    command: ["serve", "--host", "0.0.0.0", "--port", "7000"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:7000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks: [crawl_net]
+
+  # ---- Observability ----
+  langfuse-db:
+    image: postgres:16-alpine
+    container_name: autocrawl-langfuse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse_db:/var/lib/postgresql/data
+    networks: [crawl_net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  langfuse-web:
+    # Pinned to v2 — v3 requires ClickHouse + Redis + S3 (much heavier stack).
+    # v2 is single-container with Postgres only and is fine for our use case.
+    image: ghcr.io/langfuse/langfuse:2
+    container_name: autocrawl-langfuse
+    restart: unless-stopped
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_SECRET: "change-me-please-12345"
+      SALT: "change-me-please-67890"
+      NEXTAUTH_URL: http://localhost:3001
+      TELEMETRY_ENABLED: "false"
+    networks: [crawl_net]
+    ports:
+      - "3001:3000"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: autocrawl-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./backend/ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom_data:/prometheus
+    networks: [crawl_net]
+    ports:
+      - "127.0.0.1:19090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: autocrawl-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: ""
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./backend/ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./backend/ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [crawl_net]
+    ports:
+      # Host port pindah ke 3030 karena 3000 sering bentrok dengan Plane,
+      # Next.js dev server, atau Node app lain. Container internal tetap 3000.
+      - "127.0.0.1:13030:3000"
+    depends_on:
+      - prometheus
+
+networks:
+  crawl_net:
+    driver: bridge
+
+volumes:
+  redis_data:
+  chroma_data:
+  langfuse_db:
+  prom_data:
+  grafana_data:
+  autocrawl_pgdata:
+  searxng_data:

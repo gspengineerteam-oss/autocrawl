@@ -1,0 +1,211 @@
+version: 1
+description: |
+  Industries whitelist + synonym map for vendor classification UI.
+  Anything not in synonym/canonical drops at normalize-time.
+
+  Snowglobe 2026-05-25 — we stopped trusting raw LLM `industries[]` output
+  (Gemini/Ollama hallucinated "aerospace" for civilian MRO companies).
+  Now: LLM proposes → normalizer filters → only canonical tags persist.
+
+# Canonical tags surfaced in UI badges. Lowercase snake_case for stability.
+canonical:
+  - defense_industrial
+  - weapons_manufacturing
+  - ammunition_manufacturing
+  - missiles_rockets
+  - military_aerospace
+  - naval_systems
+  - vehicles_armor
+  - body_armor
+  - c4isr
+  - military_cyber
+  - military_training
+  - cbrn
+  - law_enforcement
+  - homeland_security
+  - dual_use_electronics
+  - dual_use_materials
+  - defense_software
+
+# raw → canonical mapping. Keys lowercased and trimmed before match.
+# Sumber synonyms: empiri dari Gemini/Ollama outputs + ChatGPT-imported tags.
+synonyms:
+  # defense_industrial
+  "defense":                  defense_industrial
+  "defence":                  defense_industrial
+  "defense industry":         defense_industrial
+  "defence industry":         defense_industrial
+  "military industry":        defense_industrial
+  "defense contractor":       defense_industrial
+  "defence contractor":       defense_industrial
+  "defense manufacturer":     defense_industrial
+  "defence manufacturer":     defense_industrial
+  "defense systems":          defense_industrial
+  "defence systems":          defense_industrial
+
+  # weapons_manufacturing
+  "weapons":                  weapons_manufacturing
+  "weapon":                   weapons_manufacturing
+  "firearms":                 weapons_manufacturing
+  "firearm":                  weapons_manufacturing
+  "small arms":               weapons_manufacturing
+  "light arms":               weapons_manufacturing
+  "rifle manufacturer":       weapons_manufacturing
+  "pistol manufacturer":      weapons_manufacturing
+
+  # ammunition_manufacturing
+  "ammunition":               ammunition_manufacturing
+  "ammo":                     ammunition_manufacturing
+  "munitions":                ammunition_manufacturing
+  "munition":                 ammunition_manufacturing
+  "explosives":               ammunition_manufacturing
+  "explosive":                ammunition_manufacturing
+  "ordnance":                 ammunition_manufacturing
+  "propellants":              ammunition_manufacturing
+
+  # missiles_rockets
+  "missiles":                 missiles_rockets
+  "missile":                  missiles_rockets
+  "rockets":                  missiles_rockets
+  "rocket":                   missiles_rockets
+  "guided weapons":           missiles_rockets
+  "guided munitions":         missiles_rockets
+
+  # military_aerospace (require military context to qualify; commercial drops)
+  "military aerospace":       military_aerospace
+  "defense aerospace":        military_aerospace
+  "defence aerospace":        military_aerospace
+  "military aviation":        military_aerospace
+  "combat aircraft":          military_aerospace
+  "fighter jet":              military_aerospace
+  "attack helicopter":        military_aerospace
+
+  # naval_systems
+  "naval":                    naval_systems
+  "naval systems":            naval_systems
+  "naval defense":            naval_systems
+  "shipbuilding military":    naval_systems
+  "submarine":                naval_systems
+  "warship":                  naval_systems
+  "maritime defense":         naval_systems
+
+  # vehicles_armor
+  "armored vehicles":         vehicles_armor
+  "armoured vehicles":        vehicles_armor
+  "combat vehicles":          vehicles_armor
+  "military vehicles":        vehicles_armor
+  "tactical vehicles":        vehicles_armor
+  "tanks":                    vehicles_armor
+  "main battle tank":         vehicles_armor
+  "apc":                      vehicles_armor
+  "ifv":                      vehicles_armor
+  "mrap":                     vehicles_armor
+
+  # body_armor
+  "body armor":               body_armor
+  "body armour":              body_armor
+  "ballistic protection":     body_armor
+  "personal protection":      body_armor
+  "tactical gear":            body_armor
+
+  # c4isr
+  "c4isr":                    c4isr
+  "isr":                      c4isr
+  "sigint":                   c4isr
+  "comint":                   c4isr
+  "elint":                    c4isr
+  "electronic warfare":       c4isr
+  "radar systems":            c4isr
+  "military radar":           c4isr
+  "military surveillance":    c4isr
+  "military drone":           c4isr
+  "uav":                      c4isr
+  "ucav":                     c4isr
+  "counter drone":            c4isr
+  "anti drone":               c4isr
+
+  # military_cyber
+  "military cyber":           military_cyber
+  "cyber defense":            military_cyber
+  "cyber defence":            military_cyber
+  "offensive cyber":          military_cyber
+  "signals intelligence":     military_cyber
+
+  # military_training
+  "military training":        military_training
+  "tactical training":        military_training
+  "special forces training":  military_training
+  "swat training":            military_training
+  "sniper training":          military_training
+
+  # cbrn
+  "cbrn":                     cbrn
+  "chemical biological":      cbrn
+  "radiological nuclear":     cbrn
+  "hazmat military":          cbrn
+  "decontamination":          cbrn
+
+  # law_enforcement
+  "law enforcement":          law_enforcement
+  "police":                   law_enforcement
+  "police equipment":         law_enforcement
+  "swat":                     law_enforcement
+  "tactical police":          law_enforcement
+
+  # homeland_security
+  "homeland security":        homeland_security
+  "border security":          homeland_security
+  "critical infrastructure protection": homeland_security
+  "counter terrorism":        homeland_security
+  "anti terrorism":           homeland_security
+
+  # dual_use_electronics (only if scope_match_score > 0 from classifier)
+  "thermal imaging":          dual_use_electronics
+  "night vision":             dual_use_electronics
+  "sensors defense":          dual_use_electronics
+
+  # dual_use_materials
+  "ballistic materials":      dual_use_materials
+  "armor materials":          dual_use_materials
+  "kevlar":                   dual_use_materials
+
+  # defense_software
+  "defense software":         defense_software
+  "command and control":      defense_software
+  "battle management":        defense_software
+  "military simulation":      defense_software
+
+# Tags that look military-ish but are actually civilian — drop entirely.
+# Caught before whitelist lookup. Substring match.
+deny_list:
+  - "aerospace"               # ambiguous — commercial airlines included
+  - "aviation"                # commercial too
+  - "transportation"
+  - "fashion"
+  - "cosmetics"
+  - "beauty"
+  - "food"
+  - "beverage"
+  - "hospitality"
+  - "real estate"
+  - "entertainment"
+  - "gaming"
+  - "telecommunications"      # too broad
+  - "internet"
+  - "ecommerce"
+  - "retail"
+  - "pet"
+  - "veterinary"
+  - "children"
+  - "toy"
+  - "agriculture"
+  - "construction"
+  - "manufacturing"           # too generic
+  - "industrial"              # too generic
+  - "technology"              # too generic
+  - "engineering"             # too generic
+  - "consulting"              # too generic
+  - "services"                # too generic
+  - "various"                 # placeholder ChatGPT used
+  - "other"
+  - "general"

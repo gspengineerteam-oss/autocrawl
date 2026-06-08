@@ -1,0 +1,19 @@
+# GPU override file. Use:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+#
+# Requires NVIDIA Container Toolkit on host:
+#   https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+#
+# Note: OCR is now delegated to the Ollama vision model (gemma4:e4b) — the
+# crawler container itself no longer needs a GPU. Allocate GPU to the Ollama
+# service instead (which serves both chat and OCR). This file is kept as a
+# template if you ever need to re-attach a GPU to the crawler container.
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

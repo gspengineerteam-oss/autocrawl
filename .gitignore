@@ -1,0 +1,95 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+.scratch/
+.venv-agentic
+*report
+test_agent
+0
+skills-lock.json
+
+# SSH keys + connection helpers — local-only, never commit.
+# Contains the OpenSSH-converted private key for the inference-kaytus
+# host (10.83.81.246) plus a host-alias config snippet. Generated from
+# the MobaXterm .ppk via `puttygen` — see .ssh-local/README.md.
+.ssh-local/
+*.ppk
+id_gsp
+id_gsp.pub
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# venvs
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project data — generated at runtime
+data/
+logs/
+nllb_models/
+!data/.gitkeep
+!logs/.gitkeep
+
+# Browser caches
+.playwright-cache/
+ms-playwright/
+migrations
+ops/
+tests
+scripts
+# Docker
+.docker/
+
+# Local overrides
+docker-compose.override.yml
+
+
+*node_modules/
+dist/
+.claude
+.vscode
+*.vscode
+*.claude
+frontend/certs/
+database
+

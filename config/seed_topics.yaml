@@ -1,0 +1,111 @@
+# Seed topics for dynamic expo discovery.
+# Each run, the LLM expands these into 8-15 query variations
+# with current_date context and dedupes against history.
+#
+# Order matters loosely — earlier topics get priority weight.
+
+topics:
+  - name: "security_defense"
+    label: "Security & Defense"
+    keywords:
+      - "security defense expo"
+      - "defense exhibition"
+      - "homeland security expo"
+      - "military equipment trade show"
+      - "national security conference"
+    regions: ["global", "Asia", "Europe", "Middle East", "Americas"]
+    weight: 1.0
+
+  - name: "law_enforcement"
+    label: "Law Enforcement & Police"
+    keywords:
+      - "police equipment expo"
+      - "law enforcement technology"
+      - "tactical gear trade show"
+      - "police innovation conference"
+    regions: ["global", "Asia", "Americas"]
+    weight: 0.9
+
+  - name: "border_control"
+    label: "Border Control & Customs"
+    keywords:
+      - "border control expo"
+      - "border security technology"
+      - "customs technology conference"
+      - "immigration technology expo"
+    regions: ["global"]
+    weight: 0.8
+
+  - name: "cybersecurity"
+    label: "Cybersecurity"
+    keywords:
+      - "cybersecurity expo"
+      - "cyber defense conference"
+      - "information security trade show"
+      - "infosec summit"
+    regions: ["global", "Asia", "Europe", "Americas"]
+    weight: 0.95
+
+  - name: "surveillance_isr"
+    label: "Surveillance, ISR, Drones"
+    keywords:
+      - "surveillance technology expo"
+      - "drone defense conference"
+      - "ISR exhibition"
+      - "unmanned systems expo"
+    regions: ["global"]
+    weight: 0.85
+
+  - name: "critical_infrastructure"
+    label: "Critical Infrastructure Protection"
+    keywords:
+      - "critical infrastructure security"
+      - "SCADA security conference"
+      - "energy security expo"
+      - "industrial control security"
+    regions: ["global"]
+    weight: 0.7
+
+# Anchor expos — known landmark events to prime discovery.
+# Used as positive examples for LLM seed generation.
+anchor_expos:
+  # Western
+  - "ISC West"
+  - "Milipol Paris"
+  - "IDEX Abu Dhabi"
+  - "Eurosatory"
+  - "DSEI London"
+  - "Defense & Security Bangkok"
+  - "Black Hat"
+  - "RSA Conference"
+  - "GITEX"
+  - "ISNR Abu Dhabi"
+  - "Indo Defence"
+  - "AUSA"
+  - "MSPO Kielce"
+  - "FIDAE"
+  # China
+  - "Zhuhai Airshow / China Airshow"
+  - "China International Aviation & Aerospace Exhibition"
+  - "CPSE Shenzhen (China Public Security Expo)"
+  - "Police China"
+  - "World Police Expo China"
+  - "中国国际警用装备博览会"
+  # Korea
+  - "Seoul ADEX (Aerospace & Defense Exhibition)"
+  - "DX Korea"
+  - "MADEX (Marine Defense)"
+  - "K-Police World"
+  - "서울 ADEX"
+  - "한국 방위산업전"
+  # Japan
+  - "DSEI Japan"
+  - "Japan International Aerospace Exhibition (JA)"
+  - "SEECAT Tokyo"
+  - "防衛装備品展示会"
+  - "危機管理産業展 (RISCON Tokyo)"
+  # Russia / CIS
+  - "Army Forum (Армия)"
+  - "Interpolitex (Интерполитех)"
+  - "MAKS (МАКС авиасалон)"
+  - "Russia Arms Expo"
