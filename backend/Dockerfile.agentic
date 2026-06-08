@@ -50,13 +50,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Solves reCAPTCHA v2 by clicking the audio challenge button and transcribing
 # the spoken answer via Web Speech API or Wit.ai. Loaded into Browser-Use's
 # Chromium via --load-extension at agent runtime (see agentic_crawler/agent.py).
-# Pinned to v3.1.0 — known stable, audio fallback works without API key.
-RUN curl -fsSL -o /tmp/buster.zip \
-        "https://github.com/dessant/buster/releases/download/v3.1.0/buster_captcha_solver_for_humans-3.1.0-chrome.zip" && \
-    mkdir -p /opt/buster && \
-    cd /opt/buster && unzip -q /tmp/buster.zip && \
-    rm /tmp/buster.zip && \
-    ls -lah /opt/buster | head -20
+# Non-fatal: GitHub release-assets can be flaky / rate-limited from build
+# hosts. If the fetch fails after retries we skip the extension and the
+# agent runs without CAPTCHA solving (degraded but functional).
+RUN set -eu; \
+    mkdir -p /opt/buster; \
+    if curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
+            --connect-timeout 15 --max-time 180 \
+            -o /tmp/buster.zip \
+            "https://github.com/dessant/buster/releases/download/v3.1.4/buster_captcha_solver_for_humans-3.1.4-chrome.zip"; then \
+        cd /opt/buster && unzip -q /tmp/buster.zip && rm /tmp/buster.zip && \
+        ls -lah /opt/buster | head -20; \
+    else \
+        echo "WARN: buster fetch failed; CAPTCHA solver extension will be absent" >&2; \
+        touch /opt/buster/.missing; \
+    fi
 
 # Dedicated Py3.11 venv just for browser-use. Keeps the main image's Py3.10
 # environment 100% untouched — main `crawl` CLI still uses Py3.10, only
